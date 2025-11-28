@@ -33,11 +33,48 @@
         "type": "github"
       }
     },
+    "nix-gitlab-ci-lib": {
+      "locked": {
+        "dir": "lib",
+        "lastModified": 1763066668,
+        "narHash": "sha256-mcNiuWf5R0qS7Be4EFAxPStl3SSYPhg4PSPAXgjKJj0=",
+        "owner": "TECHNOFAB",
+        "repo": "nix-gitlab-ci",
+        "rev": "524bdf9cdcfb8008c08d7e54a95992ebf05331d5",
+        "type": "gitlab"
+      },
+      "original": {
+        "dir": "lib",
+        "owner": "TECHNOFAB",
+        "ref": "3.0.1",
+        "repo": "nix-gitlab-ci",
+        "type": "gitlab"
+      }
+    },
     "root": {
       "inputs": {
         "devshell-lib": "devshell-lib",
         "fenix": "fenix",
+        "nix-gitlab-ci-lib": "nix-gitlab-ci-lib",
+        "soonix-lib": "soonix-lib",
         "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "soonix-lib": {
+      "locked": {
+        "dir": "lib",
+        "lastModified": 1763323017,
+        "narHash": "sha256-MJyg37d+VMfRoFiVUj16FW+zkEwQXbgK9LoFF/SHoxA=",
+        "owner": "TECHNOFAB",
+        "repo": "soonix",
+        "rev": "078034b01e4eaf1f9436d46721f7cbe0d96eb8b4",
+        "type": "gitlab"
+      },
+      "original": {
+        "dir": "lib",
+        "owner": "TECHNOFAB",
+        "repo": "soonix",
+        "type": "gitlab"
       }
     },
     "treefmt-nix": {

@@ -1,9 +1,12 @@
-{inputs, ...}: let
-  inherit (inputs) pkgs devshell treefmt fenix;
+{inputs, cell, ...}: let
+  inherit (inputs) pkgs devshell treefmt fenix soonix;
+  inherit (cell) ci;
 in {
   default = devshell.mkShell {
+    imports = [soonix.devshellModule];
     packages = [
       pkgs.gcc
+      pkgs.cargo-nextest
       fenix.minimal.toolchain
       fenix.rust-analyzer
       (treefmt.mkWrapper pkgs {
@@ -15,5 +18,6 @@ in {
         };
       })
     ];
+    soonix.hooks.ci = ci.soonix;
   };
 }

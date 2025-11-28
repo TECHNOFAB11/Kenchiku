@@ -21,9 +21,13 @@
       cellBlocks = with ren.blocks; [
         (simple "devShells")
         (simple "packages")
+        (simple "ci")
       ];
     }
     {
-      packages = ren.select self ["repo" "packages"];
+      packages = ren.select self [
+        ["repo" "packages"]
+        ["repo" "ci" "packages"]
+      ];
     };
 }
