@@ -1,0 +1,13 @@
+{inputs, ...}: let
+  inherit (inputs) parent pkgs fenix;
+in {
+  default =
+    (pkgs.makeRustPlatform {
+      inherit (fenix.minimal) cargo rustc;
+    }).buildRustPackage {
+      pname = "kenchiku";
+      version = "latest";
+      src = parent.self;
+      cargoLock.lockFile = "${parent.self}/Cargo.lock";
+    };
+}
