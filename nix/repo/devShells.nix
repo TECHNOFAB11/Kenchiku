@@ -1,4 +1,8 @@
-{inputs, cell, ...}: let
+{
+  inputs,
+  cell,
+  ...
+}: let
   inherit (inputs) pkgs devshell treefmt fenix soonix;
   inherit (cell) ci;
 in {
@@ -6,9 +10,10 @@ in {
     imports = [soonix.devshellModule];
     packages = [
       pkgs.gcc
+      pkgs.rust-analyzer
       pkgs.cargo-nextest
+      pkgs.lua-language-server
       fenix.minimal.toolchain
-      fenix.rust-analyzer
       (treefmt.mkWrapper pkgs {
         projectRootFile = "flake.nix";
         programs = {

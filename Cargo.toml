@@ -5,3 +5,9 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+
+[workspace.dependencies]
+kenchiku-scaffold = { path = "crates/kenchiku-scaffold" }
+
+eyre = "0.6.12"
+tracing = "0.1.43"

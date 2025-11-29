@@ -1,4 +1,7 @@
+use std::env::current_dir;
+
 use clap::Parser;
+use kenchiku_scaffold::Scaffold;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -27,7 +30,9 @@ fn main() -> eyre::Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| eyre::eyre!("Failed to set tracing subscriber: {}", e))?;
 
-    info!(VERSION, "Hello world");
+    info!(VERSION, "Kenchiku running");
+
+    let _scaffold = Scaffold::load(current_dir()?)?;
 
     Ok(())
 }
