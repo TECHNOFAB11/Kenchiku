@@ -1,15 +1,19 @@
 use eyre::{Result, eyre};
 use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog};
-use mlua::Lua;
+use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::debug;
+
+use crate::meta::ScaffoldMeta;
+
+mod meta;
 
 #[derive(Debug)]
 pub struct Scaffold {
     #[allow(dead_code)]
     lua: Lua,
     pub path: PathBuf,
-    pub description: String,
+    pub meta: ScaffoldMeta,
 }
 
 impl Scaffold {
@@ -37,25 +41,9 @@ impl Scaffold {
         let file_content = read_to_string(scaffold_lua_path)?;
         let scaffold_content: mlua::Value = lua.load(&file_content).eval()?;
 
-        let table = match scaffold_content {
-            mlua::Value::Table(table) => table,
-            other => {
-                return Err(eyre!(
-                    "Scaffolds need to return lua tables, this one returned {:?}",
-                    other
-                ));
-            }
-        };
+        let meta = ScaffoldMeta::from_lua(scaffold_content, &lua)?;
 
-        let description = table
-            .get("description")
-            .unwrap_or("no description".to_string());
-
-        Ok(Self {
-            lua,
-            path,
-            description,
-        })
+        Ok(Self { lua, path, meta })
     }
 }
 
@@ -70,6 +58,7 @@ mod tests {
         let lua_content = r#"
             return {
                 description = "hello world!",
+                construct = function() end,
             }
         "#;
         let scaffold_lua = tmp.path().join("scaffold.lua");
@@ -77,7 +66,7 @@ mod tests {
 
         let res = Scaffold::load(tmp.path().to_path_buf()).expect("scaffold to load");
 
-        assert_eq!(res.description, "hello world!".to_string());
+        assert_eq!(res.meta.description, "hello world!".to_string());
     }
     #[test]
     fn test_load_invalid_paths() {

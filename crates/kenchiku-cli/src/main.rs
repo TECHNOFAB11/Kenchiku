@@ -32,7 +32,13 @@ fn main() -> eyre::Result<()> {
 
     info!(VERSION, "Kenchiku running");
 
-    let _scaffold = Scaffold::load(current_dir()?)?;
+    let scaffold = Scaffold::load(current_dir()?)?;
+    println!("Scaffold:");
+    println!(" desc: {}", scaffold.meta.description);
+    println!(" patches:");
+    for (name, patch) in scaffold.meta.patches {
+        println!("  {}: {}", name, patch.description);
+    }
 
     Ok(())
 }
