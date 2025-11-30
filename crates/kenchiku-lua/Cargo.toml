@@ -1,14 +1,10 @@
 [package]
-name = "kenchiku-scaffold"
+name = "kenchiku-lua"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-kenchiku-lua.workspace = true
-
 eyre.workspace = true
-tracing.workspace = true
+inquire = "0.9.1"
 mlua.workspace = true
-
-[dev-dependencies]
-tempfile = "3"
+tracing.workspace = true

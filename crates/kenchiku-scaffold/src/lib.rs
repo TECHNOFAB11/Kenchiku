@@ -1,4 +1,5 @@
 use eyre::{Result, eyre};
+use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog};
 use mlua::Lua;
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::debug;
@@ -27,6 +28,12 @@ impl Scaffold {
         debug!(?path, "loading scaffold...");
 
         let lua = Lua::new();
+
+        // TODO: pass context which contains globals like scaffold path and config?
+        LuaLog::register(&lua)?;
+        LuaFS::register(&lua)?;
+        LuaExec::register(&lua)?;
+
         let file_content = read_to_string(scaffold_lua_path)?;
         let scaffold_content: mlua::Value = lua.load(&file_content).eval()?;
 
