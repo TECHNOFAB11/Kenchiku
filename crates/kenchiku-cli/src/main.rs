@@ -1,5 +1,9 @@
+use std::{env::current_dir, path::PathBuf};
+
 use clap::{Parser, Subcommand};
 use eyre::eyre;
+use inquire::Confirm;
+use kenchiku_common::Context;
 use kenchiku_scaffold::{
     Scaffold,
     discovery::{discover_scaffold, find_all_scaffolds},
@@ -31,12 +35,22 @@ pub enum Commands {
     Construct {
         /// Scaffold to construct, either name or path.
         scaffold: String,
+        /// The path where the scaffold will be generated. Defaults to the current directory.
+        output: Option<String>,
+        /// Auto confirm actions, use multiple times to auto confirm more dangerous actions.
+        #[arg(short, long, action = clap::ArgAction::Count)]
+        confirm_all: u8,
     },
     /// Runs a patch of a scaffold
     Patch {
         /// Patch to run, in the format of "<scaffold>:<patch_name>", for example
         /// "utils:add_logging"
         patch: String,
+        /// The path where the patch will run. Defaults to the current directory.
+        output: Option<String>,
+        /// Auto confirm actions, use multiple times to auto confirm more dangerous actions.
+        #[arg(short, long, action = clap::ArgAction::Count)]
+        confirm_all: u8,
     },
 }
 
@@ -81,14 +95,31 @@ fn main() -> eyre::Result<()> {
         }
         Commands::Construct {
             scaffold: scaffold_name,
+            output,
+            confirm_all,
         } => {
             info!(scaffold_name, "Starting construction...");
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            scaffold.call_construct()?;
+            let out_path = output.map(PathBuf::from).unwrap_or(current_dir()?);
+            let temp_dir = tempfile::tempdir()?;
+            let context = Context {
+                working_dir: temp_dir.path().to_path_buf(),
+                confirm_all,
+                output: out_path,
+                confirm_fn: |message: String| {
+                    // TODO: handle ctrl c
+                    Ok(Confirm::new(&message).with_default(false).prompt()?)
+                },
+            };
+            scaffold.call_construct(context)?;
         }
-        Commands::Patch { patch } => {
+        Commands::Patch {
+            patch,
+            output,
+            confirm_all,
+        } => {
             let mut split = patch.split(":");
             let scaffold_name = split
                 .next()
@@ -101,7 +132,17 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name.to_string()).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            scaffold.call_patch(patch_name)?;
+            let out_path = output.map(PathBuf::from).unwrap_or(current_dir()?);
+            let context = Context {
+                working_dir: current_dir()?,
+                confirm_all,
+                output: out_path,
+                confirm_fn: |message: String| {
+                    Ok(Confirm::new(&message).with_default(false).prompt()?)
+                },
+                ..Default::default()
+            };
+            scaffold.call_patch(patch_name, context)?;
         }
     }
 

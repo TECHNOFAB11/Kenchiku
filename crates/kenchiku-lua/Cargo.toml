@@ -4,7 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+kenchiku-common.workspace = true
+
 eyre.workspace = true
-inquire = "0.9.1"
 mlua.workspace = true
 tracing.workspace = true

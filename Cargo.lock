@@ -320,9 +320,19 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "eyre",
+ "inquire",
+ "kenchiku-common",
  "kenchiku-scaffold",
+ "tempfile",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "kenchiku-common"
+version = "0.1.0"
+dependencies = [
+ "eyre",
 ]
 
 [[package]]
@@ -330,7 +340,7 @@ name = "kenchiku-lua"
 version = "0.1.0"
 dependencies = [
  "eyre",
- "inquire",
+ "kenchiku-common",
  "mlua",
  "tracing",
 ]
@@ -340,6 +350,7 @@ name = "kenchiku-scaffold"
 version = "0.1.0"
 dependencies = [
  "eyre",
+ "kenchiku-common",
  "kenchiku-lua",
  "mlua",
  "tempfile",

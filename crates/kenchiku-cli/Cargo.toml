@@ -9,7 +9,11 @@ path = "src/main.rs"
 
 [dependencies]
 kenchiku-scaffold.workspace = true
+kenchiku-common.workspace = true
+
 tracing.workspace = true
 eyre.workspace = true
+inquire = "0.9.1"
+tempfile = "3.23.0"
 clap = { version = "4.5.53", features = ["derive"] }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }

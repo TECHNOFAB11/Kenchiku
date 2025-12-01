@@ -9,6 +9,7 @@ edition = "2021"
 [workspace.dependencies]
 kenchiku-scaffold = { path = "crates/kenchiku-scaffold" }
 kenchiku-lua = { path = "crates/kenchiku-lua" }
+kenchiku-common = { path = "crates/kenchiku-common" }
 
 eyre = "0.6.12"
 tracing = "0.1.43"

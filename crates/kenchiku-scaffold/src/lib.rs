@@ -1,4 +1,5 @@
-use eyre::{Context, Result, eyre};
+use eyre::{Context as _, Result, eyre};
+use kenchiku_common::Context;
 use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog};
 use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
@@ -36,7 +37,10 @@ impl Scaffold {
         let lua = Lua::new();
 
         let file_content = read_to_string(scaffold_lua_path)?;
-        let scaffold_content: mlua::Value = lua.load(&file_content).eval()?;
+        let scaffold_content: mlua::Value = lua
+            .load(&file_content)
+            .eval()
+            .wrap_err("failed to load scaffold.lua")?;
 
         let meta = ScaffoldMeta::from_lua(scaffold_content, &lua)?;
         let name: String = path
@@ -54,24 +58,23 @@ impl Scaffold {
         })
     }
 
-    fn register_functions(&self) -> Result<()> {
-        // TODO: pass context which contains globals like scaffold path and config?
-        LuaLog::register(&self.lua)?;
-        LuaFS::register(&self.lua)?;
-        LuaExec::register(&self.lua)?;
+    fn register_functions(&self, context: Context) -> Result<()> {
+        LuaLog::register(&self.lua, context.clone())?;
+        LuaFS::register(&self.lua, context.clone())?;
+        LuaExec::register(&self.lua, context)?;
         Ok(())
     }
 
-    pub fn call_construct(self) -> Result<()> {
-        self.register_functions()?;
+    pub fn call_construct(self, context: Context) -> Result<()> {
+        self.register_functions(context)?;
         self.meta
             .construct
             .call::<()>(())
             .wrap_err("failed to call construct function")
     }
 
-    pub fn call_patch(self, name: &str) -> Result<()> {
-        self.register_functions()?;
+    pub fn call_patch(self, name: &str, context: Context) -> Result<()> {
+        self.register_functions(context)?;
         let patch_meta = self
             .meta
             .patches

@@ -1,25 +1,23 @@
-use inquire::Confirm;
+use kenchiku_common::Context;
 use mlua::{Lua, Result};
 use std::process::Command;
 
 pub struct LuaExec;
 
 impl LuaExec {
-    pub fn register(lua: &Lua) -> Result<()> {
+    pub fn register(lua: &Lua, context: Context) -> Result<()> {
         let exec_table = lua.create_table()?;
 
         exec_table.set(
             "run",
-            lua.create_function(|lua, command: String| {
-                // TODO: dont use inquire here directly, maybe pass a callback in ctx or so, then
-                // cli can use inquire
-                let ans = Confirm::new(&format!("Execute command: '{}'?", command))
-                    .with_default(false)
-                    .prompt();
+            lua.create_function(move |lua, command: String| {
+                if context.confirm_all < 2 {
+                    let ans = (context.confirm_fn)(format!("Execute command: '{}'?", command));
 
-                match ans {
-                    Ok(true) => {}
-                    _ => return Ok(mlua::Value::Nil),
+                    match ans {
+                        Ok(true) => {}
+                        _ => return Ok(mlua::Value::Nil),
+                    }
                 }
 
                 let output = Command::new("sh")
