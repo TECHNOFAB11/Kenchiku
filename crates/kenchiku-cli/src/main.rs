@@ -1,6 +1,5 @@
-use std::env::current_dir;
-
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use eyre::{Context, eyre};
 use kenchiku_scaffold::Scaffold;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -11,6 +10,29 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
+
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Show information about a scaffold.
+    Show {
+        /// Scaffold to show information about, either name or path.
+        scaffold: String,
+    },
+    /// Construct a scaffold by running it's construct function
+    Construct {
+        /// Scaffold to construct, either name or path.
+        scaffold: String,
+    },
+    /// Runs a patch of a scaffold
+    Patch {
+        /// Patch to run, in the format of "<scaffold>:<patch_name>", for example
+        /// "utils:add_logging"
+        patch: String,
+    },
 }
 
 fn main() -> eyre::Result<()> {
@@ -32,12 +54,52 @@ fn main() -> eyre::Result<()> {
 
     info!(VERSION, "Kenchiku running");
 
-    let scaffold = Scaffold::load(current_dir()?)?;
-    println!("Scaffold:");
-    println!(" desc: {}", scaffold.meta.description);
-    println!(" patches:");
-    for (name, patch) in scaffold.meta.patches {
-        println!("  {}: {}", name, patch.description);
+    match cli.command {
+        Commands::Show {
+            scaffold: scaffold_name,
+        } => {
+            // TODO: only view as path if it starts with . or /, otherwise search for scaffold name
+            let scaffold = Scaffold::load(scaffold_name.into())?;
+            println!("Scaffold:");
+            println!(" desc: {}", scaffold.meta.description);
+            println!(" patches:");
+            for (name, patch) in scaffold.meta.patches {
+                println!("  {}: {}", name, patch.description);
+            }
+        }
+        Commands::Construct {
+            scaffold: scaffold_name,
+        } => {
+            info!(scaffold_name, "Starting construction...");
+            let scaffold = Scaffold::load(scaffold_name.into())?;
+            scaffold
+                .meta
+                .construct
+                .call::<()>(())
+                .wrap_err("failed to call construct function")?;
+        }
+        Commands::Patch { patch } => {
+            let mut split = patch.split(":");
+            let scaffold_name = split
+                .next()
+                .ok_or(eyre!("no scaffold name found in {}", patch))?;
+            let patch_name = split
+                .next()
+                .ok_or(eyre!("no patch name found in {}, did you use the format '<scaffold>:<patch>'?", patch))?;
+            info!(scaffold_name, patch_name, "Starting patching...");
+            let scaffold = Scaffold::load(scaffold_name.into())?;
+            let patch_meta = scaffold
+                .meta
+                .patches
+                .iter()
+                .find(|patch| patch.0 == patch_name)
+                .ok_or(eyre!("no patch with name '{}' found", patch_name))?
+                .1;
+            patch_meta
+                .run
+                .call::<()>(())
+                .wrap_err("failed to call patch function")?;
+        }
     }
 
     Ok(())
