@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use eyre::{Context, eyre};
+use eyre::eyre;
 use kenchiku_scaffold::{Scaffold, discovery::discover_scaffold};
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -75,11 +75,7 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            scaffold
-                .meta
-                .construct
-                .call::<()>(())
-                .wrap_err("failed to call construct function")?;
+            scaffold.call_construct()?;
         }
         Commands::Patch { patch } => {
             let mut split = patch.split(":");
@@ -94,17 +90,7 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name.to_string()).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            let patch_meta = scaffold
-                .meta
-                .patches
-                .iter()
-                .find(|patch| patch.0 == patch_name)
-                .ok_or(eyre!("no patch with name '{}' found", patch_name))?
-                .1;
-            patch_meta
-                .run
-                .call::<()>(())
-                .wrap_err("failed to call patch function")?;
+            scaffold.call_patch(patch_name)?;
         }
     }
 

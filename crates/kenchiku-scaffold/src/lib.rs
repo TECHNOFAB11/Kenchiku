@@ -1,4 +1,4 @@
-use eyre::{Result, eyre};
+use eyre::{Context, Result, eyre};
 use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog};
 use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
@@ -6,8 +6,8 @@ use tracing::debug;
 
 use crate::meta::ScaffoldMeta;
 
-mod meta;
 pub mod discovery;
+mod meta;
 
 #[derive(Debug)]
 pub struct Scaffold {
@@ -45,6 +45,27 @@ impl Scaffold {
         let meta = ScaffoldMeta::from_lua(scaffold_content, &lua)?;
 
         Ok(Self { lua, path, meta })
+    }
+
+    pub fn call_construct(self) -> Result<()> {
+        self.meta
+            .construct
+            .call::<()>(())
+            .wrap_err("failed to call construct function")
+    }
+
+    pub fn call_patch(self, name: &str) -> Result<()> {
+        let patch_meta = self
+            .meta
+            .patches
+            .iter()
+            .find(|patch| patch.0 == name)
+            .ok_or(eyre!("no patch with name '{}' found", name))?
+            .1;
+        patch_meta
+            .run
+            .call::<()>(())
+            .wrap_err("failed to call patch function")
     }
 }
 
