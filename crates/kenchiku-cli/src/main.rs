@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use eyre::{Context, eyre};
-use kenchiku_scaffold::Scaffold;
+use kenchiku_scaffold::{Scaffold, discovery::discover_scaffold};
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -58,8 +58,9 @@ fn main() -> eyre::Result<()> {
         Commands::Show {
             scaffold: scaffold_name,
         } => {
-            // TODO: only view as path if it starts with . or /, otherwise search for scaffold name
-            let scaffold = Scaffold::load(scaffold_name.into())?;
+            let scaffold_path =
+                discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
+            let scaffold = Scaffold::load(scaffold_path)?;
             println!("Scaffold:");
             println!(" desc: {}", scaffold.meta.description);
             println!(" patches:");
@@ -71,7 +72,9 @@ fn main() -> eyre::Result<()> {
             scaffold: scaffold_name,
         } => {
             info!(scaffold_name, "Starting construction...");
-            let scaffold = Scaffold::load(scaffold_name.into())?;
+            let scaffold_path =
+                discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
+            let scaffold = Scaffold::load(scaffold_path)?;
             scaffold
                 .meta
                 .construct
@@ -83,11 +86,14 @@ fn main() -> eyre::Result<()> {
             let scaffold_name = split
                 .next()
                 .ok_or(eyre!("no scaffold name found in {}", patch))?;
-            let patch_name = split
-                .next()
-                .ok_or(eyre!("no patch name found in {}, did you use the format '<scaffold>:<patch>'?", patch))?;
+            let patch_name = split.next().ok_or(eyre!(
+                "no patch name found in {}, did you use the format '<scaffold>:<patch>'?",
+                patch
+            ))?;
             info!(scaffold_name, patch_name, "Starting patching...");
-            let scaffold = Scaffold::load(scaffold_name.into())?;
+            let scaffold_path =
+                discover_scaffold(scaffold_name.to_string()).ok_or(eyre!("Scaffold not found"))?;
+            let scaffold = Scaffold::load(scaffold_path)?;
             let patch_meta = scaffold
                 .meta
                 .patches

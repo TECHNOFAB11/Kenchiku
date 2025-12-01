@@ -7,6 +7,7 @@ use tracing::debug;
 use crate::meta::ScaffoldMeta;
 
 mod meta;
+pub mod discovery;
 
 #[derive(Debug)]
 pub struct Scaffold {
