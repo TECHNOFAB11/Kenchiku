@@ -125,14 +125,15 @@ mod tests {
         let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
 
         // Create a scaffold.lua file in the temporary directory
-        let scaffold_file_path = Path::new(&temp_dir_path).join("scaffold.lua");
+        let scaffold_file_path = Path::new(&temp_dir_path).join("test/scaffold.lua");
+        fs::create_dir_all(scaffold_file_path.parent().unwrap()).unwrap();
         fs::File::create(&scaffold_file_path).unwrap();
 
         env::set_var("KENCHIKU_PATH", &temp_dir_path);
 
         let found_directories = find_scaffold_directories_in_path(&temp_dir_path);
         assert_eq!(found_directories.len(), 1);
-        assert_eq!(found_directories[0], temp_dir_path);
+        assert_eq!(found_directories[0], format!("{}/test", temp_dir_path));
     }
 
     #[test]
@@ -153,7 +154,8 @@ mod tests {
         let temp_dir2 = tempdir().unwrap();
         let temp_dir_path2 = temp_dir2.path().to_string_lossy().to_string();
 
-        let scaffold_file_path1 = Path::new(&temp_dir_path1).join("scaffold.lua");
+        let scaffold_file_path1 = Path::new(&temp_dir_path1).join("test/scaffold.lua");
+        fs::create_dir_all(scaffold_file_path1.parent().unwrap()).unwrap();
         fs::File::create(&scaffold_file_path1).unwrap();
 
         let path_env = format!("{}:{}", temp_dir_path1, temp_dir_path2);
@@ -161,7 +163,7 @@ mod tests {
 
         let found_directories = find_scaffold_directories_in_path(&path_env);
         assert_eq!(found_directories.len(), 1);
-        assert_eq!(found_directories[0], temp_dir_path1);
+        assert_eq!(found_directories[0], format!("{}/test", temp_dir_path1));
     }
 
     #[test]
@@ -177,9 +179,11 @@ mod tests {
         let temp_dir2 = tempdir().unwrap();
         let temp_dir_path2 = temp_dir2.path().to_string_lossy().to_string();
 
-        let scaffold_file_path1 = Path::new(&temp_dir_path1).join("scaffold.lua");
+        let scaffold_file_path1 = Path::new(&temp_dir_path1).join("test/scaffold.lua");
+        fs::create_dir_all(scaffold_file_path1.parent().unwrap()).unwrap();
         fs::File::create(&scaffold_file_path1).unwrap();
-        let scaffold_file_path2 = Path::new(&temp_dir_path2).join("scaffold.lua");
+        let scaffold_file_path2 = Path::new(&temp_dir_path2).join("other/scaffold.lua");
+        fs::create_dir_all(scaffold_file_path2.parent().unwrap()).unwrap();
         fs::File::create(&scaffold_file_path2).unwrap();
 
         let path_env = format!("{}:{}", temp_dir_path1, temp_dir_path2);
@@ -187,7 +191,7 @@ mod tests {
 
         let found_directories = find_scaffold_directories_in_path(&path_env);
         assert_eq!(found_directories.len(), 2);
-        assert!(found_directories.contains(&temp_dir1.path().to_path_buf()));
-        assert!(found_directories.contains(&temp_dir2.path().to_path_buf()));
+        assert!(found_directories.contains(&temp_dir1.path().join("test").to_path_buf()));
+        assert!(found_directories.contains(&temp_dir2.path().join("other").to_path_buf()));
     }
 }
