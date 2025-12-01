@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 use eyre::eyre;
-use kenchiku_scaffold::{Scaffold, discovery::discover_scaffold};
+use kenchiku_scaffold::{
+    Scaffold,
+    discovery::{discover_scaffold, find_all_scaffolds},
+};
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -22,6 +25,8 @@ pub enum Commands {
         /// Scaffold to show information about, either name or path.
         scaffold: String,
     },
+    /// List all discovered scaffolds.
+    List,
     /// Construct a scaffold by running it's construct function
     Construct {
         /// Scaffold to construct, either name or path.
@@ -61,11 +66,17 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            println!("Scaffold:");
-            println!(" desc: {}", scaffold.meta.description);
-            println!(" patches:");
-            for (name, patch) in scaffold.meta.patches {
-                println!("  {}: {}", name, patch.description);
+            scaffold.print();
+        }
+        Commands::List => {
+            let found_scaffolds = find_all_scaffolds()
+                .iter()
+                .map(|path| Scaffold::load(path.to_path_buf()))
+                .collect::<eyre::Result<Vec<Scaffold>>>()?;
+            println!("Found scaffolds:\n======");
+            for scaffold in found_scaffolds {
+                scaffold.print();
+                println!("======");
             }
         }
         Commands::Construct {

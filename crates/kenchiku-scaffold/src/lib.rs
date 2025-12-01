@@ -13,6 +13,7 @@ mod meta;
 pub struct Scaffold {
     #[allow(dead_code)]
     lua: Lua,
+    pub name: String,
     pub path: PathBuf,
     pub meta: ScaffoldMeta,
 }
@@ -43,8 +44,19 @@ impl Scaffold {
         let scaffold_content: mlua::Value = lua.load(&file_content).eval()?;
 
         let meta = ScaffoldMeta::from_lua(scaffold_content, &lua)?;
+        let name: String = path
+            .file_name()
+            .expect("to get filename of path")
+            .to_str()
+            .expect("to get filename of path")
+            .to_owned();
 
-        Ok(Self { lua, path, meta })
+        Ok(Self {
+            lua,
+            name,
+            path,
+            meta,
+        })
     }
 
     pub fn call_construct(self) -> Result<()> {
@@ -66,6 +78,16 @@ impl Scaffold {
             .run
             .call::<()>(())
             .wrap_err("failed to call patch function")
+    }
+
+    pub fn print(self) {
+        println!("Name: {}", self.name);
+        println!("Description: {}", self.meta.description);
+        println!("Patches:");
+        for patch in self.meta.patches {
+            println!("  - Name: {}", patch.0);
+            println!("    Description: {}", patch.1.description);
+        }
     }
 }
 
