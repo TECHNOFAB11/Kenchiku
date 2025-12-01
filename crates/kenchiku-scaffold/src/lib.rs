@@ -35,11 +35,6 @@ impl Scaffold {
 
         let lua = Lua::new();
 
-        // TODO: pass context which contains globals like scaffold path and config?
-        LuaLog::register(&lua)?;
-        LuaFS::register(&lua)?;
-        LuaExec::register(&lua)?;
-
         let file_content = read_to_string(scaffold_lua_path)?;
         let scaffold_content: mlua::Value = lua.load(&file_content).eval()?;
 
@@ -59,7 +54,16 @@ impl Scaffold {
         })
     }
 
+    fn register_functions(&self) -> Result<()> {
+        // TODO: pass context which contains globals like scaffold path and config?
+        LuaLog::register(&self.lua)?;
+        LuaFS::register(&self.lua)?;
+        LuaExec::register(&self.lua)?;
+        Ok(())
+    }
+
     pub fn call_construct(self) -> Result<()> {
+        self.register_functions()?;
         self.meta
             .construct
             .call::<()>(())
@@ -67,6 +71,7 @@ impl Scaffold {
     }
 
     pub fn call_patch(self, name: &str) -> Result<()> {
+        self.register_functions()?;
         let patch_meta = self
             .meta
             .patches
