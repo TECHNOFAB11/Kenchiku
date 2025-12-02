@@ -3,12 +3,13 @@ use kenchiku_common::Context;
 use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog};
 use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
-use tracing::debug;
+use tracing::{debug, info, warn};
 
-use crate::meta::ScaffoldMeta;
+use crate::{meta::ScaffoldMeta, utils::move_files_to_destination};
 
 pub mod discovery;
 mod meta;
+mod utils;
 
 #[derive(Debug)]
 pub struct Scaffold {
@@ -98,6 +99,29 @@ impl Scaffold {
             println!("  - Name: {}", patch.0);
             println!("    Description: {}", patch.1.description);
         }
+    }
+
+    pub fn construct(self, context: Context) -> Result<()> {
+        debug!(dir = ?context.working_dir, "Constructing scaffold");
+        self.call_construct(context.clone())?;
+        let remaining = move_files_to_destination(
+            &context.working_dir,
+            &context.output,
+            // TODO: make configurable?
+            true,
+        )?;
+        if remaining.len() > 0 {
+            let paths_pretty = remaining
+                .iter()
+                .map(|path| format!("- {}", path.display()))
+                .collect::<Vec<_>>()
+                .join("\n");
+            warn!("Existing files are in the way, please manually copy these over:\n{paths_pretty}")
+        } else {
+            info!(to = ?context.output, "Scaffold files successfully copied over");
+            std::fs::remove_dir_all(context.working_dir)?;
+        }
+        Ok(())
     }
 }
 

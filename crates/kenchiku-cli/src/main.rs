@@ -103,7 +103,7 @@ fn main() -> eyre::Result<()> {
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
             let out_path = output.map(PathBuf::from).unwrap_or(current_dir()?);
-            let temp_dir = tempfile::tempdir()?;
+            let mut temp_dir = tempfile::tempdir()?;
             let context = Context {
                 working_dir: temp_dir.path().to_path_buf(),
                 confirm_all,
@@ -113,7 +113,9 @@ fn main() -> eyre::Result<()> {
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
                 },
             };
-            scaffold.call_construct(context)?;
+            scaffold.construct(context)?;
+            // only disable cleanup if we constructed successfully
+            temp_dir.disable_cleanup(true);
         }
         Commands::Patch {
             patch,
