@@ -6,6 +6,7 @@ pub struct Context {
     pub confirm_all: u8,
     pub confirm_fn: fn(message: String) -> eyre::Result<bool>,
     pub output: PathBuf,
+    pub allow_overwrite: bool,
 }
 
 impl Default for Context {
@@ -15,6 +16,7 @@ impl Default for Context {
             working_dir: Default::default(),
             confirm_all: 0,
             output: Default::default(),
+            allow_overwrite: false,
         }
     }
 }

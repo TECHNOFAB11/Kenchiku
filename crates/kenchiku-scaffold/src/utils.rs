@@ -6,6 +6,7 @@ pub(crate) fn move_files_to_destination(
     source_dir: &PathBuf,
     dest_dir: &PathBuf,
     merge_directories: bool,
+    overwrite: bool,
 ) -> eyre::Result<Vec<PathBuf>> {
     let mut skipped_paths = Vec::new();
 
@@ -15,15 +16,21 @@ pub(crate) fn move_files_to_destination(
         let file_name = entry.file_name();
         let dest_path = dest_dir.join(file_name);
 
-        if dest_path.exists() {
-            if dest_path.is_dir() && merge_directories {
-                let skipped =
-                    move_files_to_destination(&source_path, &dest_path, merge_directories)?;
-                skipped_paths.extend(skipped);
-            } else {
-                skipped_paths.push(source_path);
-            }
+        if source_path.is_dir() && dest_path.exists() && dest_path.is_dir() && merge_directories {
+            let skipped =
+                move_files_to_destination(&source_path, &dest_path, merge_directories, overwrite)?;
+            skipped_paths.extend(skipped);
+        } else if dest_path.exists() && !overwrite {
+            skipped_paths.push(source_path);
         } else {
+            // If overwrite is true and destination exists, remove destination first
+            if dest_path.exists() && overwrite {
+                if dest_path.is_dir() {
+                    fs::remove_dir_all(&dest_path)?;
+                } else {
+                    fs::remove_file(&dest_path)?;
+                }
+            }
             fs::rename(&source_path, &dest_path)
                 .or_else(|e| {
                     if e.kind() == ErrorKind::CrossesDevices {
@@ -66,6 +73,7 @@ mod tests {
             &source_dir.path().to_path_buf(),
             &dest_dir.path().to_path_buf(),
             false,
+            false,
         )?;
         assert_eq!(skipped.len(), 0);
         assert!(dest_file_path.exists());
@@ -89,6 +97,7 @@ mod tests {
         let skipped = move_files_to_destination(
             &source_dir.path().to_path_buf(),
             &dest_dir.path().to_path_buf(),
+            false,
             false,
         )?;
         assert_eq!(skipped.len(), 1);
@@ -116,6 +125,7 @@ mod tests {
             &source_dir.path().to_path_buf(),
             &dest_dir.path().to_path_buf(),
             true,
+            false,
         )?;
         assert_eq!(skipped.len(), 0);
 
@@ -134,6 +144,7 @@ mod tests {
         let skipped = move_files_to_destination(
             &source_dir.path().to_path_buf(),
             &dest_dir.path().to_path_buf(),
+            false,
             false,
         )?;
 
@@ -157,12 +168,66 @@ mod tests {
             &source_dir.path().to_path_buf(),
             &dest_dir.path().to_path_buf(),
             false,
+            false,
         )?;
 
         assert_eq!(skipped.len(), 1);
         assert_eq!(skipped[0], source_dir_path);
         assert!(source_dir_path.exists());
         assert!(dest_dir_path.exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_file_overwrite_enabled() -> eyre::Result<()> {
+        let source_dir = tempfile::tempdir()?;
+        let dest_dir = tempfile::tempdir()?;
+
+        let source_file_path = source_dir.path().join("test.txt");
+        create_dummy_file(&source_file_path, "source content")?;
+
+        let dest_file_path = dest_dir.path().join("test.txt");
+        create_dummy_file(&dest_file_path, "destination content")?;
+
+        let skipped = move_files_to_destination(
+            &source_dir.path().to_path_buf(),
+            &dest_dir.path().to_path_buf(),
+            false,
+            true,
+        )?;
+        assert_eq!(skipped.len(), 0);
+        assert!(dest_file_path.exists());
+        assert!(!source_file_path.exists());
+        assert_eq!(fs::read_to_string(dest_file_path)?, "source content");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_directory_merge_with_overwrite() -> eyre::Result<()> {
+        let source_dir = tempfile::tempdir()?;
+        let dest_dir = tempfile::tempdir()?;
+
+        let source_subdir = source_dir.path().join("subdir");
+        fs::create_dir(&source_subdir)?;
+        create_dummy_file(&source_subdir.join("source.txt"), "source file")?;
+
+        let dest_subdir = dest_dir.path().join("subdir");
+        fs::create_dir(&dest_subdir)?;
+        create_dummy_file(&dest_subdir.join("dest.txt"), "dest file")?;
+
+        let skipped = move_files_to_destination(
+            &source_dir.path().to_path_buf(),
+            &dest_dir.path().to_path_buf(),
+            true,
+            true,
+        )?;
+        assert_eq!(skipped.len(), 0);
+
+        assert!(dest_subdir.join("source.txt").exists());
+        assert!(dest_subdir.join("dest.txt").exists());
+        assert!(!source_subdir.join("source.txt").exists());
 
         Ok(())
     }

@@ -109,6 +109,7 @@ impl Scaffold {
             &context.output,
             // TODO: make configurable?
             true,
+            context.allow_overwrite,
         )?;
         if remaining.len() > 0 {
             let paths_pretty = remaining

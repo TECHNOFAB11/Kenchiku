@@ -40,6 +40,9 @@ pub enum Commands {
         /// Auto confirm actions, use multiple times to auto confirm more dangerous actions.
         #[arg(short, long, action = clap::ArgAction::Count)]
         confirm_all: u8,
+        /// Force will overwrite existing files in the output path.
+        #[arg(short, long)]
+        force: bool,
     },
     /// Runs a patch of a scaffold
     Patch {
@@ -97,6 +100,7 @@ fn main() -> eyre::Result<()> {
             scaffold: scaffold_name,
             output,
             confirm_all,
+            force,
         } => {
             info!(scaffold_name, "Starting construction...");
             let scaffold_path =
@@ -112,6 +116,7 @@ fn main() -> eyre::Result<()> {
                     // TODO: handle ctrl c
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
                 },
+                allow_overwrite: force,
             };
             scaffold.construct(context)?;
             // only disable cleanup if we constructed successfully
