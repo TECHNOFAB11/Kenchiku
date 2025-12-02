@@ -90,6 +90,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c481bdbf0ed3b892f6f806287d72acd515b352a4ec27a208489b8c1bc839633a"
 dependencies = [
  "find-msvc-tools",
+ "jobserver",
+ "libc",
  "shlex",
 ]
 
@@ -315,6 +317,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
+name = "jobserver"
+version = "0.1.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38f262f097c174adebe41eb73d66ae9c06b2844fb0da69969647bbddd9b0538a"
+dependencies = [
+ "getrandom",
+ "libc",
+]
+
+[[package]]
 name = "kenchiku-cli"
 version = "0.1.0"
 dependencies = [
@@ -416,6 +428,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "luau0-src"
+version = "0.17.0+luau701"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed8f8edd8aba9654a9eeb62b2fe7461589f2faf2d0a1bc04bd64c0123319b3fc"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -468,6 +489,7 @@ dependencies = [
  "cfg-if",
  "lua-src",
  "luajit-src",
+ "luau0-src",
  "pkg-config",
 ]
 

@@ -35,10 +35,12 @@ impl Scaffold {
         debug!(?path, "loading scaffold...");
 
         let lua = Lua::new();
+        lua.sandbox(true)?;
 
-        let file_content = read_to_string(scaffold_lua_path)?;
+        let file_content = read_to_string(&scaffold_lua_path)?;
         let scaffold_content: mlua::Value = lua
             .load(&file_content)
+            .set_name(scaffold_lua_path.display().to_string())
             .eval()
             .wrap_err("failed to load scaffold.lua")?;
 

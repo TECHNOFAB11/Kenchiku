@@ -7,8 +7,8 @@ return {
 
 		print("scaffold.lua exists? " .. tostring(exists))
 
-		local stdout = exec.run("echo hi!")
-		warn("Stdout: " .. stdout)
+		local stdout = exec.run("pwd")
+		warn("PWD: " .. stdout)
 	end,
 	patches = {
 		example = {

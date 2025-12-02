@@ -12,15 +12,20 @@ impl LuaExec {
             "run",
             lua.create_function(move |lua, command: String| {
                 if context.confirm_all < 2 {
-                    let ans = (context.confirm_fn)(format!("Execute command: '{}'?", command));
+                    let ans = (context.confirm_fn)(format!(
+                        "[sys] Execute command '{}' in {}?",
+                        command,
+                        context.working_dir.display()
+                    ));
 
                     match ans {
                         Ok(true) => {}
-                        _ => return Ok(mlua::Value::Nil),
+                        _ => return Err(mlua::Error::external("command denied by user")),
                     }
                 }
 
                 let output = Command::new("sh")
+                    .current_dir(&context.working_dir)
                     .arg("-c")
                     .arg(&command)
                     .output()
