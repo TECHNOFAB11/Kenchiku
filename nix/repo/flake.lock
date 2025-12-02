@@ -36,18 +36,35 @@
     "nix-gitlab-ci-lib": {
       "locked": {
         "dir": "lib",
-        "lastModified": 1763066668,
-        "narHash": "sha256-mcNiuWf5R0qS7Be4EFAxPStl3SSYPhg4PSPAXgjKJj0=",
+        "lastModified": 1764684748,
+        "narHash": "sha256-isLrzdoe6eihqf1BmuDTdH+H4II3AiEDSgHuP4tC4y0=",
         "owner": "TECHNOFAB",
         "repo": "nix-gitlab-ci",
-        "rev": "524bdf9cdcfb8008c08d7e54a95992ebf05331d5",
+        "rev": "59f8bd169ae2733238455899fb3bace9cab99ff7",
         "type": "gitlab"
       },
       "original": {
         "dir": "lib",
         "owner": "TECHNOFAB",
-        "ref": "3.0.1",
+        "ref": "3.1.0",
         "repo": "nix-gitlab-ci",
+        "type": "gitlab"
+      }
+    },
+    "nixmkdocs-lib": {
+      "locked": {
+        "dir": "lib",
+        "lastModified": 1763481845,
+        "narHash": "sha256-Bp0+9rDmlPWMcnKqGx+BG4+o5KO8FuDAOvXRnXrm3Fo=",
+        "owner": "TECHNOFAB",
+        "repo": "nixmkdocs",
+        "rev": "73d59093df94a894d25bc4bf71880b6f00faa62f",
+        "type": "gitlab"
+      },
+      "original": {
+        "dir": "lib",
+        "owner": "TECHNOFAB",
+        "repo": "nixmkdocs",
         "type": "gitlab"
       }
     },
@@ -56,6 +73,7 @@
         "devshell-lib": "devshell-lib",
         "fenix": "fenix",
         "nix-gitlab-ci-lib": "nix-gitlab-ci-lib",
+        "nixmkdocs-lib": "nixmkdocs-lib",
         "soonix-lib": "soonix-lib",
         "treefmt-nix": "treefmt-nix"
       }
