@@ -9,6 +9,11 @@ return {
 
 		local stdout = exec.run("pwd")
 		warn("PWD: " .. stdout)
+
+		fs.write("hello.txt", "hello world!")
+
+		local contents = fs.read("hello.txt")
+		print("contents: " .. contents)
 	end,
 	patches = {
 		example = {

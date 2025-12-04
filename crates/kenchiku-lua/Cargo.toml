@@ -9,3 +9,6 @@ kenchiku-common.workspace = true
 eyre.workspace = true
 mlua.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

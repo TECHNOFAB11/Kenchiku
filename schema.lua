@@ -1,18 +1,21 @@
 ---@meta
 
 ---@class fs_global
----@field exists fun(path: string): boolean
+---@field exists fun(path: string): boolean Checks if a file exists.
+---@field read fun(path: string): string Reads the contents of a file.
+---@field write fun(path: string, content: string) Writes content to a file.
+---@field mkdir fun(path: string) Creates all directories up to path.
 
 ---@type fs_global
 fs = nil
 
 ---@class exec_global
----@field run fun(command: string): string | nil
+---@field run fun(command: string): string Runs a command in the working dir.
 
 ---@type exec_global
 exec = nil
 
----@param msg string
+---@param msg string Log a warning.
 function warn(msg) end
 
 ---@class Patch

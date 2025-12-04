@@ -354,6 +354,7 @@ dependencies = [
  "eyre",
  "kenchiku-common",
  "mlua",
+ "tempfile",
  "tracing",
 ]
 

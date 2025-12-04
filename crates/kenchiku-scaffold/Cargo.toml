@@ -10,4 +10,4 @@ kenchiku-common.workspace = true
 eyre.workspace = true
 tracing.workspace = true
 mlua.workspace = true
-tempfile = "3"
+tempfile.workspace = true
