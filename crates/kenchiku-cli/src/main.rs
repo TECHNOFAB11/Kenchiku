@@ -55,6 +55,8 @@ pub enum Commands {
         #[arg(short, long, action = clap::ArgAction::Count)]
         confirm_all: u8,
     },
+    /// Starts the MCP server (stdio)
+    Mcp,
 }
 
 fn main() -> eyre::Result<()> {
@@ -69,6 +71,7 @@ fn main() -> eyre::Result<()> {
 
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from(filter))
+        .with_writer(std::io::stderr)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber)
@@ -83,7 +86,7 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            scaffold.print();
+            scaffold.print(None)?;
         }
         Commands::List => {
             let found_scaffolds = find_all_scaffolds()
@@ -92,7 +95,7 @@ fn main() -> eyre::Result<()> {
                 .collect::<eyre::Result<Vec<Scaffold>>>()?;
             println!("Found scaffolds:\n======");
             for scaffold in found_scaffolds {
-                scaffold.print();
+                scaffold.print(None)?;
                 println!("======");
             }
         }
@@ -152,6 +155,9 @@ fn main() -> eyre::Result<()> {
                 ..Default::default()
             };
             scaffold.call_patch(patch_name, context)?;
+        },
+        Commands::Mcp => {
+            kenchiku_mcp::server::run_blocking()?;
         }
     }
 

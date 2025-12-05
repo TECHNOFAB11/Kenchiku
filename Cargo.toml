@@ -10,6 +10,7 @@ edition = "2021"
 kenchiku-scaffold = { path = "crates/kenchiku-scaffold" }
 kenchiku-lua = { path = "crates/kenchiku-lua" }
 kenchiku-common = { path = "crates/kenchiku-common" }
+kenchiku-mcp = { path = "crates/kenchiku-mcp" }
 
 eyre = "0.6.12"
 tracing = "0.1.43"

@@ -92,14 +92,21 @@ impl Scaffold {
             .wrap_err("failed to call patch function")
     }
 
-    pub fn print(self) {
-        println!("Name: {}", self.name);
-        println!("Description: {}", self.meta.description);
-        println!("Patches:");
-        for patch in self.meta.patches {
-            println!("  - Name: {}", patch.0);
-            println!("    Description: {}", patch.1.description);
+    pub fn print(&self, writer: Option<&mut dyn std::io::Write>) -> std::io::Result<()> {
+        let mut stdout = std::io::stdout();
+        let writer: &mut dyn std::io::Write = match writer {
+            Some(w) => w,
+            None => &mut stdout,
+        };
+
+        writeln!(writer, "Name: {}", self.name)?;
+        writeln!(writer, "Description: {}", self.meta.description)?;
+        writeln!(writer, "Patches:")?;
+        for patch in &self.meta.patches {
+            writeln!(writer, "  - Name: {}", patch.0)?;
+            writeln!(writer, "    Description: {}", patch.1.description)?;
         }
+        Ok(())
     }
 
     pub fn construct(self, context: Context) -> Result<()> {

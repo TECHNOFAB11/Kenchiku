@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 kenchiku-scaffold.workspace = true
 kenchiku-common.workspace = true
+kenchiku-mcp.workspace = true
 
 tracing.workspace = true
 eyre.workspace = true
