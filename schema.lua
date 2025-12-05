@@ -1,8 +1,11 @@
 ---@meta
 
+---@class FsReadOpts
+---@field source "scaffold"|"workdir" Where to read the file/path from.
+
 ---@class fs_global
 ---@field exists fun(path: string): boolean Checks if a file exists.
----@field read fun(path: string): string Reads the contents of a file.
+---@field read fun(path: string, opts?: FsReadOpts): string Reads the contents of a file.
 ---@field write fun(path: string, content: string) Writes content to a file.
 ---@field mkdir fun(path: string) Creates all directories up to path.
 

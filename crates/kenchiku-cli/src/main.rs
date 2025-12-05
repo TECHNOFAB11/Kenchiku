@@ -112,6 +112,7 @@ fn main() -> eyre::Result<()> {
                 working_dir: temp_dir.path().to_path_buf(),
                 confirm_all,
                 output: out_path,
+                scaffold_dir: scaffold.path.clone(),
                 confirm_fn: |message: String| {
                     // TODO: handle ctrl c
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
@@ -144,6 +145,7 @@ fn main() -> eyre::Result<()> {
                 working_dir: current_dir()?,
                 confirm_all,
                 output: out_path,
+                scaffold_dir: scaffold.path.clone(),
                 confirm_fn: |message: String| {
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
                 },

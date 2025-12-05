@@ -12,7 +12,7 @@ return {
 
 		fs.write("hello.txt", "hello world!")
 
-		local contents = fs.read("hello.txt")
+		local contents = fs.read("hello.txt", { source = "workdir" })
 		print("contents: " .. contents)
 	end,
 	patches = {

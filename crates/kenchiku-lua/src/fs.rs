@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use eyre::Result;
+use eyre::{Result, eyre};
 use kenchiku_common::Context;
-use mlua::Lua;
+use mlua::{ExternalError, FromLua, Lua};
 use tracing::debug;
 
 pub struct LuaFS;
@@ -21,13 +21,22 @@ impl LuaFS {
         )?;
 
         let working_dir = context.working_dir.clone();
-        // TODO: make it possible to read files from the scaffold's source dir, either extra fn or
-        // opts table?
+        let scaffold_dir = context.scaffold_dir.clone();
         fs_table.set(
             "read",
-            lua.create_function(move |_, path: String| {
-                let user_path = validate_path(&working_dir, path)?;
-                Ok(std::fs::read_to_string(&user_path)?)
+            lua.create_function(move |_, (path, opts): (String, LuaFsReadOpts)| {
+                let path = match opts.source.as_ref() {
+                    "workdir" => validate_path(&working_dir, path)?,
+                    "scaffold" => validate_path(&scaffold_dir, path)?,
+                    _ => {
+                        return Err(
+                            eyre!("Invalid read source, must be one of workdir,scaffold")
+                                .into_lua_err(),
+                        );
+                    }
+                };
+
+                Ok(std::fs::read_to_string(&path)?)
             })?,
         )?;
 
@@ -53,6 +62,34 @@ impl LuaFS {
         lua.globals().set("fs", fs_table)?;
 
         Ok(())
+    }
+}
+
+struct LuaFsReadOpts {
+    source: String,
+}
+
+impl Default for LuaFsReadOpts {
+    fn default() -> Self {
+        Self {
+            source: "scaffold".to_string(),
+        }
+    }
+}
+
+impl FromLua for LuaFsReadOpts {
+    fn from_lua(value: mlua::Value, _lua: &Lua) -> mlua::Result<Self> {
+        let table = match value {
+            mlua::Value::Table(table) => table,
+            // allow not passing any options table, then default to default
+            mlua::Value::Nil => return Ok(Self::default()),
+            other => {
+                return Err(eyre!("Opts needs to be a table, received {:?}", other).into_lua_err());
+            }
+        };
+        Ok(Self {
+            source: table.get("source").unwrap_or_default(),
+        })
     }
 }
 
@@ -94,45 +131,43 @@ mod tests {
         let temp_dir = tempdir()?;
         let working_dir = temp_dir.path().to_path_buf();
 
+        let scaffold_temp_dir = tempdir()?;
+        let scaffold_dir = scaffold_temp_dir.path().to_path_buf();
+        fs::write(scaffold_dir.join("example.txt"), "hello world")?;
+
         let lua = Lua::new();
         let context = Context {
             working_dir: working_dir.clone(),
+            scaffold_dir: scaffold_dir.clone(),
             ..Default::default()
         };
         LuaFS::register(&lua, context)?;
 
-        let execute_lua = |lua: &Lua, script: &str| -> Result<()> {
+        let execute_lua = |script: &str| -> Result<()> {
             lua.load(script).exec()?;
             Ok(())
         };
 
         // Exists test
-        execute_lua(
-            &lua,
-            &format!(
-                r#"
+        execute_lua(&format!(
+            r#"
                     local exists = fs.exists("{}")
                     assert(not exists)
                 "#,
-                working_dir.join("nonexistent.txt").display()
-            ),
-        )?;
+            working_dir.join("nonexistent.txt").display()
+        ))?;
 
         // Mkdir test
-        execute_lua(
-            &lua,
-            &format!(
-                r#"
+        execute_lua(&format!(
+            r#"
                     fs.mkdir("{}")
                 "#,
-                working_dir.join("new_dir").display()
-            ),
-        )?;
+            working_dir.join("new_dir").display()
+        ))?;
         assert!(working_dir.join("new_dir").exists());
 
         // Write test
         execute_lua(
-            &lua,
             r#"
                 fs.write("test.txt", "hello world")
             "#,
@@ -144,16 +179,22 @@ mod tests {
 
         // Read test
         execute_lua(
-            &lua,
             r#"
-                local content = fs.read("test.txt")
+                local content = fs.read("test.txt", { source = "workdir" })
+                assert(content == "hello world")
+            "#,
+        )?;
+
+        // Read from scaffold test
+        execute_lua(
+            r#"
+                local content = fs.read("example.txt")
                 assert(content == "hello world")
             "#,
         )?;
 
         // Exists test 2
         execute_lua(
-            &lua,
             r#"
                 local exists = fs.exists("test.txt")
                 assert(exists)
