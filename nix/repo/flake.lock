@@ -36,17 +36,17 @@
     "nix-gitlab-ci-lib": {
       "locked": {
         "dir": "lib",
-        "lastModified": 1764684748,
-        "narHash": "sha256-isLrzdoe6eihqf1BmuDTdH+H4II3AiEDSgHuP4tC4y0=",
+        "lastModified": 1764792166,
+        "narHash": "sha256-NUlXqkZMXx23/6SllGWqp6Z8OMDdSIOv7xBPl57G4Z0=",
         "owner": "TECHNOFAB",
         "repo": "nix-gitlab-ci",
-        "rev": "59f8bd169ae2733238455899fb3bace9cab99ff7",
+        "rev": "8a77208ebe29fe7b3ba60bec3d48868049f93013",
         "type": "gitlab"
       },
       "original": {
         "dir": "lib",
         "owner": "TECHNOFAB",
-        "ref": "3.1.0",
+        "ref": "3.1.1",
         "repo": "nix-gitlab-ci",
         "type": "gitlab"
       }
