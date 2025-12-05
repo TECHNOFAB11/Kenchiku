@@ -1,5 +1,8 @@
 use eyre::{Result, WrapErr};
-use kenchiku_scaffold::{Scaffold, discovery::find_all_scaffolds};
+use kenchiku_scaffold::{
+    Scaffold,
+    discovery::{discover_scaffold, find_all_scaffolds},
+};
 use rmcp::{
     ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -18,6 +21,11 @@ pub struct KenchikuMcpServer {
 struct ConstructArgs {
     scaffold_name: String,
     allow_level: i32,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct ReadArgs {
+    scaffold_name: String,
 }
 
 #[tool_router(router = tool_router)]
@@ -71,6 +79,20 @@ impl KenchikuMcpServer {
                 }
             }
             Ok(String::from_utf8(output)?)
+        })
+        .await
+        .unwrap_or_else(|e| Err(e.into()))
+        .unwrap_or_else(|e| e.to_string())
+    }
+
+    #[tool(description = "Read the content of a scaffold's scaffold.lua file")]
+    async fn read(&self, Parameters(ReadArgs { scaffold_name }): Parameters<ReadArgs>) -> String {
+        tokio::task::spawn_blocking(move || -> eyre::Result<String> {
+            let path = discover_scaffold(scaffold_name.clone());
+            if path.is_some() {
+                return Ok(std::fs::read_to_string(path.unwrap().join("scaffold.lua"))?);
+            }
+            Ok(format!("No scaffold with name '{}' found", scaffold_name))
         })
         .await
         .unwrap_or_else(|e| Err(e.into()))

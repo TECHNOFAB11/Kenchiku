@@ -12,3 +12,6 @@ rmcp = { version = "0.10.0", features = ["server", "client", "macros", "transpor
 tokio = { version = "1.47.2", features = ["full"] }
 serde = "1.0.228"
 serde_json = "1.0.145"
+
+[dev-dependencies]
+tempfile.workspace = true
