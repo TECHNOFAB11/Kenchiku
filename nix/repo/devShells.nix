@@ -25,5 +25,6 @@ in {
       })
     ];
     soonix.hooks.ci = ci.soonix;
+    env.KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
   };
 }

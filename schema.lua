@@ -18,6 +18,12 @@ fs = nil
 ---@type exec_global
 exec = nil
 
+---@class tmpl_global
+---@field patch fun(content: string, pattern: string, replacement: string, opts: table?): string Patch a string, replacing the source with target.
+
+---@type tmpl_global
+tmpl = nil
+
 ---@param msg string Log a warning.
 function warn(msg) end
 

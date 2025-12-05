@@ -14,6 +14,9 @@ return {
 
 		local contents = fs.read("hello.txt", { source = "workdir" })
 		print("contents: " .. contents)
+
+		local result = tmpl.patch("hello world", "hello", "konnichiwa")
+		print("result: " .. result)
 	end,
 	patches = {
 		example = {

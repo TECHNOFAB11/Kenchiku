@@ -9,6 +9,7 @@ kenchiku-common.workspace = true
 eyre.workspace = true
 mlua.workspace = true
 tracing.workspace = true
+regex = "1.12.2"
 
 [dev-dependencies]
 tempfile.workspace = true
