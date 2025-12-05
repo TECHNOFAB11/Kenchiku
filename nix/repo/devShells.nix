@@ -25,6 +25,9 @@ in {
       })
     ];
     soonix.hooks.ci = ci.soonix;
-    env.KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
+    env = {
+      KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
+      LD_LIBRARY_PATH.value = "${pkgs.stdenv.cc.cc.lib}/lib";
+    };
   };
 }

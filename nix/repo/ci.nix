@@ -12,6 +12,7 @@ in
             cargo-nextest
             gcc
           ];
+          variables.LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
           script = [
             "cargo nextest run --profile ci"
           ];
