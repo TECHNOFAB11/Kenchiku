@@ -12,7 +12,16 @@ in
             cargo-nextest
             gcc
           ];
-          variables.LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
+          variables = {
+            "LD_LIBRARY_PATH" = "${pkgs.stdenv.cc.cc.lib}/lib";
+            "CARGO_HOME" = "\${CI_PROJECT_DIR}/.cargo";
+          };
+          cache = [
+            {
+              key = "rust-cache";
+              paths = ["target/" ".cargo/bin" ".cargo/registry"];
+            }
+          ];
           script = [
             "cargo nextest run --profile ci"
           ];
