@@ -31,6 +31,10 @@ in
         };
         nav = [
           {"Introduction" = "index.md";}
+          {"Usage" = "usage.md";}
+          {"CLI" = "cli.md";}
+          {"Lua APIs" = "apis.md";}
+          {"Examples" = "examples.md";}
         ];
         markdown_extensions = [
           {
@@ -41,6 +45,7 @@ in
           "pymdownx.superfences"
           "pymdownx.escapeall"
           "fenced_code"
+          "admonition"
         ];
       };
     };

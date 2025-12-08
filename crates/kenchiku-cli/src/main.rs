@@ -15,6 +15,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 struct Cli {
+    /// Increases verbosity/decreases log level. -v -> info, -vv -> debug, -vvv -> trace
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 

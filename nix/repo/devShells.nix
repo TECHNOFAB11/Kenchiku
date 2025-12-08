@@ -22,6 +22,12 @@ in {
           rustfmt.enable = true;
           stylua.enable = true;
         };
+        settings.formatter.mdformat.command = let
+          pkg = pkgs.python3.withPackages (p: [
+            p.mdformat
+            p.mdformat-mkdocs
+          ]);
+        in "${pkg}/bin/mdformat";
       })
     ];
     soonix.hooks.ci = ci.soonix;
