@@ -1,6 +1,6 @@
 use eyre::{Context as _, Result, eyre};
 use kenchiku_common::Context;
-use kenchiku_lua::{exec::LuaExec, fs::LuaFS, log::LuaLog, tmpl::LuaTmpl};
+use kenchiku_lua::{exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, tmpl::LuaTmpl};
 use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::{debug, info, warn};
@@ -65,7 +65,8 @@ impl Scaffold {
         LuaLog::register(&self.lua, context.clone())?;
         LuaFS::register(&self.lua, context.clone())?;
         LuaExec::register(&self.lua, context.clone())?;
-        LuaTmpl::register(&self.lua, context)?;
+        LuaTmpl::register(&self.lua, context.clone())?;
+        LuaJson::register(&self.lua, context)?;
         Ok(())
     }
 

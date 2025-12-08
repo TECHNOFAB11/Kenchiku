@@ -108,3 +108,25 @@ Run a command using `sh -c`. Returns stdout as a string.
 ```lua
 exec.run("pwd")
 ```
+
+## `json` Module
+
+### `json.encode(data any)`
+
+Encodes `data` to a json string.
+
+**Example**
+
+```lua
+json.encode({ hello = "world" })
+```
+
+### `json.decode(data string)`
+
+Decodes `data` json string to a lua value.
+
+**Example**
+
+```lua
+json.decode('{"hello": "world"}')
+```
