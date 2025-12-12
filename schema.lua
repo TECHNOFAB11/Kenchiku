@@ -27,11 +27,19 @@ tmpl = nil
 ---@param msg string Log a warning.
 function warn(msg) end
 
+---@class Value
+---@field description string Description of value.
+---@field type "string"|"number"|"enum"|"bool" Type of the value.
+---@field default? string|number|boolean|nil Default value.
+---@field choices? table<string> Enum values to select from.
+
 ---@class Patch
 ---@field description string Description of what the patch does.
 ---@field run fun() Function which executes the patch.
+---@field values table<string, Value>? Values this patch requires.
 
 ---@class Scaffold
 ---@field description string Description of what the scaffold does.
 ---@field construct fun() Function which executes the scaffold.
 ---@field patches table<string, Patch>? Patches this scaffold exposes.
+---@field values table<string, Value>? Values this scaffold requires.

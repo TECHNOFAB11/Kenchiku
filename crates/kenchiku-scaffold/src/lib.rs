@@ -5,7 +5,10 @@ use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::{debug, info, warn};
 
-use crate::{meta::ScaffoldMeta, utils::move_files_to_destination};
+use crate::{
+    meta::{ScaffoldMeta, ValueMeta},
+    utils::move_files_to_destination,
+};
 
 pub mod discovery;
 mod meta;
@@ -100,12 +103,44 @@ impl Scaffold {
             None => &mut stdout,
         };
 
+        let print_value = |writer: &mut dyn std::io::Write,
+                           value: (&String, &ValueMeta),
+                           indent: usize|
+         -> std::io::Result<()> {
+            let indent_str = " ".repeat(indent);
+            writeln!(writer, "{indent_str}- Name: {}", value.0)?;
+            writeln!(writer, "{indent_str}  Description: {}", value.1.description)?;
+            writeln!(writer, "{indent_str}  Type: {}", value.1.r#type)?;
+            if value.1.default.is_some() {
+                writeln!(
+                    writer,
+                    "{indent_str}  Default: {:?}",
+                    value.1.default.clone().unwrap()
+                )?;
+            }
+            if value.1.r#type == "enum" && value.1.choices.is_some() {
+                writeln!(writer, "{indent_str}  Choices:")?;
+                for choice in value.1.choices.clone().unwrap() {
+                    writeln!(writer, "{indent_str}    - {}", choice)?;
+                }
+            }
+            Ok(())
+        };
+
         writeln!(writer, "Name: {}", self.name)?;
         writeln!(writer, "Description: {}", self.meta.description)?;
+        writeln!(writer, "Values:")?;
+        for value in &self.meta.values {
+            print_value(writer, value, 2)?;
+        }
         writeln!(writer, "Patches:")?;
         for patch in &self.meta.patches {
             writeln!(writer, "  - Name: {}", patch.0)?;
             writeln!(writer, "    Description: {}", patch.1.description)?;
+            writeln!(writer, "    Values:")?;
+            for value in &patch.1.values {
+                print_value(writer, value, 6)?;
+            }
         }
         Ok(())
     }

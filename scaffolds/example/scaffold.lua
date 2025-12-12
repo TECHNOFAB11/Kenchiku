@@ -18,6 +18,18 @@ return {
 		local result = tmpl.patch("hello world", "hello", "konnichiwa")
 		print("result: " .. result)
 	end,
+	values = {
+		example = {
+			description = "Some description",
+			type = "string",
+			default = "Example!",
+		},
+		test = {
+			description = "Test",
+			type = "enum",
+			choices = { "option1", "option2" },
+		},
+	},
 	patches = {
 		example = {
 			description = [[
@@ -26,6 +38,13 @@ return {
 			run = function()
 				print("running patch example")
 			end,
+			values = {
+				test = {
+					description = "some desc",
+					type = "bool",
+					default = false,
+				},
+			},
 		},
 	},
 }
