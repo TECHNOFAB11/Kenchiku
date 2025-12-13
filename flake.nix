@@ -23,6 +23,7 @@
         (simple "packages")
         (simple "ci")
         (simple "docs")
+        (simple "soonix")
       ];
     }
     {
@@ -30,6 +31,7 @@
         ["repo" "packages"]
         ["repo" "ci" "packages"]
         ["repo" "docs"]
+        ["repo" "soonix" "packages"]
       ];
     };
 }

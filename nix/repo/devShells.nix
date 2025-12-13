@@ -3,8 +3,8 @@
   cell,
   ...
 }: let
-  inherit (inputs) pkgs devshell treefmt fenix soonix;
-  inherit (cell) ci;
+  inherit (inputs) pkgs devshell treefmt fenix;
+  inherit (cell) soonix;
 in {
   default = devshell.mkShell {
     imports = [soonix.devshellModule];
@@ -30,7 +30,6 @@ in {
         in "${pkg}/bin/mdformat";
       })
     ];
-    soonix.hooks.ci = ci.soonix;
     env = {
       KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
       LD_LIBRARY_PATH.value = "${pkgs.stdenv.cc.cc.lib}/lib";
