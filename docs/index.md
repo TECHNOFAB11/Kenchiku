@@ -9,5 +9,4 @@ modifying existing projects, like patching files to add features.
 - Flexible, thanks to Lua
 - Integrated MCP server for LLMs to use Kenchiku (for easy project bootstrapping)
 - Secure-ish (some sandboxing/escape preventions and confirmation prompts, but ultimately you should read
-  the scaffolds and don't execute random stuff from the internet, like always)
-
+    the scaffolds and don't execute random stuff from the internet, like always)
