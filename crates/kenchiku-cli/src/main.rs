@@ -140,10 +140,10 @@ fn main() -> eyre::Result<()> {
                 confirm_all,
                 output: out_path,
                 scaffold_dir: scaffold.path.clone(),
-                confirm_fn: |message: String| {
+                confirm_fn: Arc::new(|message: String| {
                     // TODO: handle ctrl c
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
-                },
+                }),
                 allow_overwrite: force,
                 values_meta: scaffold.meta.values.clone(),
                 values: values
@@ -184,9 +184,9 @@ fn main() -> eyre::Result<()> {
                 confirm_all,
                 output: out_path,
                 scaffold_dir: scaffold.path.clone(),
-                confirm_fn: |message: String| {
+                confirm_fn: Arc::new(|message: String| {
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
-                },
+                }),
                 values_meta: scaffold
                     .meta
                     .patches

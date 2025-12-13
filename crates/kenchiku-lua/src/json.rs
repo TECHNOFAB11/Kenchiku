@@ -287,16 +287,6 @@ mod tests {
         // Test empty array
         lua.load(
             r#"
-            local encoded = json.encode({})
-            -- Note: Lua tables without array part encode as objects
-            -- To get empty array, we need to use a table with array part only
-            local empty_array = setmetatable({}, {__jsontype = "array"})
-            -- Actually, let's test with actual array-like table
-            local arr = {}
-            table.insert(arr, "only to remove")
-            table.remove(arr, 1)
-            -- This might encode as {} depending on Lua table implementation
-            -- So we'll focus on decode test instead
             local decoded = json.decode('[]')
             assert(type(decoded) == "table")
             assert(#decoded == 0)

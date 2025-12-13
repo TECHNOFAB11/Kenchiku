@@ -8,7 +8,7 @@ pub mod meta;
 pub struct Context {
     pub working_dir: PathBuf,
     pub confirm_all: u8,
-    pub confirm_fn: fn(message: String) -> eyre::Result<bool>,
+    pub confirm_fn: Arc<dyn Fn(String) -> eyre::Result<bool> + Send + Sync>,
     pub output: PathBuf,
     pub scaffold_dir: PathBuf,
     pub allow_overwrite: bool,
@@ -21,7 +21,7 @@ pub struct Context {
 impl Default for Context {
     fn default() -> Self {
         Self {
-            confirm_fn: |_message| Ok(true),
+            confirm_fn: Arc::new(|_message| Ok(true)),
             working_dir: Default::default(),
             confirm_all: 0,
             output: Default::default(),
