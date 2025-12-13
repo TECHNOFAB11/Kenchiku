@@ -97,6 +97,38 @@ Basically a regex replace, so `pattern` can contain capture groups and
 tmpl.patch("hello world", "w+", "konnichiwa")
 ```
 
+### `tmpl.template(template_string, vars)`
+
+Renders a [MiniJinja](https://github.com/mitsuhiko/minijinja) template string with the given variables.
+
+**Example**
+
+```lua
+tmpl.template("Hello {{ name }}!", { name = "World" })
+```
+
+### `tmpl.template_file(file_path, vars)`
+
+Reads a file from the scaffold directory and renders it as a template.
+
+**Example**
+
+```lua
+tmpl.template_file("templates/main.rs.j2", { name = "my_project" })
+```
+
+## `values` Module
+
+### `values.get(name)`
+
+Retrieves the value for the given name. If the value wasn't provided via CLI flags, Kenchiku will interactively prompt the user based on the value definition in `scaffold.lua`.
+
+**Example**
+
+```lua
+local name = values.get("project_name")
+```
+
 ## `exec` Module
 
 ### `exec.run(command)`

@@ -33,8 +33,10 @@ in
           {"Introduction" = "index.md";}
           {"Usage" = "usage.md";}
           {"CLI" = "cli.md";}
+          {"Scaffolds" = "scaffolds.md";}
           {"Lua APIs" = "apis.md";}
           {"Examples" = "examples.md";}
+          {"MCP" = "mcp.md";}
         ];
         markdown_extensions = [
           {

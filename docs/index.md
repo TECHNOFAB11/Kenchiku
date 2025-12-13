@@ -4,6 +4,8 @@ Project scaffolding tool written in Rust, which uses Lua to define "Scaffolds" a
 "Patches". Scaffolds construct new projects, mostly from zero, while Patches allow
 modifying existing projects, like patching files to add features.
 
+> **Fun Fact**: "Kenchiku" (建築) is Japanese for "architecture" or "construction".
+
 ## Features
 
 - Flexible, thanks to Lua

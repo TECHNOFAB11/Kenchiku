@@ -9,7 +9,7 @@ Kenchiku finds scaffolds using the `KENCHIKU_PATH` env variable. Like normal `$P
 So if you put your scaffolds at `~/.local/share/kenchiku/scaffolds`, add that to `KENCHIKU_PATH`.
 Your scaffolds should then show up when running `kenchiku list`.
 
-Example:
+**Example**:
 
 ```sh
 ~/.local/share/kenchiku/scaffolds/
@@ -42,12 +42,19 @@ Values work the same, either pass them with `-s/--set` or get asked interactivel
 return {
   description = "A description of what this scaffold/the construct function does",
   construct = function() end,
-  values = {}, -- WIP
+  values = {
+    value_name = {
+      description = "Description",
+      type = "string", -- or bool, enum, number
+      default = "default", -- optional
+      choices = {}, -- optional, for enum
+    }
+  },
   patches = { -- optional
     patch_name = {
       description = "A description of what this patch does",
       run = function() end,
-      values = {}, -- WIP
+      values = {}, -- Patches can also have values
     },
   },
 }
