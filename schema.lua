@@ -20,6 +20,8 @@ exec = nil
 
 ---@class tmpl_global
 ---@field patch fun(content: string, pattern: string, replacement: string, opts: table?): string Patch a string, replacing the source with target.
+---@field template fun(content: string, vars: table): string
+---@field template_file fun(file: string, vars: table): string
 
 ---@type tmpl_global
 tmpl = nil

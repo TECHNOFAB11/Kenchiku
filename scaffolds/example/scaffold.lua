@@ -27,6 +27,15 @@ return {
 		local enum = values.get("enum") ---@type string
 		print("Enum is: " .. tostring(enum))
 
+		local template = [[
+Hello world! {{ a }}
+]]
+		local templated = tmpl.template(template, { a = "b" })
+		print("Templated: " .. templated)
+
+		local templated_file = tmpl.template_file("example.txt.tmpl", { greeting = "Hello" })
+		print("Templated file: " .. templated_file)
+
 		-- local invalid = values.get("invalid")
 		-- print("Should not reach this")
 	end,

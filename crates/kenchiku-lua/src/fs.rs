@@ -94,7 +94,7 @@ impl FromLua for LuaFsReadOpts {
     }
 }
 
-fn validate_path(working_dir: &Path, path: String) -> mlua::Result<PathBuf> {
+pub(crate) fn validate_path(working_dir: &Path, path: String) -> mlua::Result<PathBuf> {
     let specified_path = working_dir.join(&path);
     debug!(path, ?specified_path, "Validating path");
     let user_path = if specified_path.is_dir() {
