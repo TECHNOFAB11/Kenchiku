@@ -1,5 +1,6 @@
+use crate::IntoLuaErrDebug;
 use eyre::eyre;
-use mlua::{ExternalError, FromLua, Lua};
+use mlua::{FromLua, Lua};
 use std::collections::HashMap;
 
 fn get_and_check<'lua, T>(
@@ -12,12 +13,18 @@ where
     T: FromLua,
 {
     match table.get(key)? {
-        mlua::Value::Nil => Err(eyre!("'{}' field is missing in the table", key).into_lua_err()),
+        mlua::Value::Nil => {
+            Err(eyre!("'{}' field is missing in the table", key)).into_lua_err_debug()
+        }
         value => match T::from_lua(value.clone(), lua) {
             Ok(typed_value) => Ok(typed_value),
-            Err(_) => Err(
-                eyre!("'{}' field must be a {}, got {:?}", key, type_name, value).into_lua_err(),
-            ),
+            Err(_) => Err(eyre!(
+                "'{}' field must be a {}, got {:?}",
+                key,
+                type_name,
+                value
+            ))
+            .into_lua_err_debug(),
         },
     }
 }
@@ -38,8 +45,8 @@ impl FromLua for ValueMeta {
                 return Err(eyre!(
                     "Scaffold/Patch needs to return a table for a value, received {:?}",
                     other
-                )
-                .into_lua_err());
+                ))
+                .into_lua_err_debug();
             }
         };
 
@@ -70,8 +77,8 @@ impl FromLua for PatchMeta {
                 return Err(eyre!(
                     "Scaffold needs to return a table for patches, received {:?}",
                     other
-                )
-                .into_lua_err());
+                ))
+                .into_lua_err_debug();
             }
         };
 
@@ -104,8 +111,8 @@ impl FromLua for ScaffoldMeta {
                 return Err(eyre!(
                     "Scaffolds need to return lua tables, this one returned {:?}",
                     other
-                )
-                .into_lua_err());
+                ))
+                .into_lua_err_debug();
             }
         };
         Ok(ScaffoldMeta {

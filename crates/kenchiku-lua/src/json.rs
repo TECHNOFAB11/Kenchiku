@@ -1,6 +1,6 @@
 use eyre::Context as _;
-use kenchiku_common::Context;
-use mlua::{ExternalResult, Lua, LuaSerdeExt, Result};
+use kenchiku_common::{Context, IntoLuaErrDebug};
+use mlua::{Lua, LuaSerdeExt, Result};
 
 pub struct LuaJson;
 
@@ -13,7 +13,7 @@ impl LuaJson {
             lua.create_function(|_lua, data: mlua::Value| {
                 Ok(serde_json::to_string(&data)
                     .wrap_err("failed to encode value to json")
-                    .into_lua_err()?)
+                    .into_lua_err_debug()?)
             })?,
         )?;
 
@@ -22,7 +22,7 @@ impl LuaJson {
             lua.create_function(|lua, data: String| -> Result<mlua::Value> {
                 let value: serde_json::Value = serde_json::from_str(&data)
                     .wrap_err("failed to decode json")
-                    .into_lua_err()?;
+                    .into_lua_err_debug()?;
                 lua.to_value(&value)
             })?,
         )?;
@@ -197,10 +197,10 @@ mod tests {
                     items = {"a", "b", "c"}
                 }
             }
-            
+
             local encoded = json.encode(original)
             local decoded = json.decode(encoded)
-            
+
             -- Verify structure
             assert(decoded.name == "test")
             assert(#decoded.numbers == 5)

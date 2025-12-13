@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env::current_dir, path::PathBuf};
+use std::{collections::HashMap, env::current_dir, path::PathBuf, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use eyre::eyre;
@@ -86,20 +86,21 @@ fn main() -> eyre::Result<()> {
 
     info!(VERSION, "Kenchiku running");
 
-    let prompt_value = |value_type: String,
-                        description: String,
-                        choices: Option<Vec<String>>|
-     -> eyre::Result<String> {
-        Ok(match value_type.as_str() {
-            "enum" => {
-                inquire::Select::new(&description, choices.expect("choices to be some")).prompt()?
-            }
-            "bool" => inquire::Confirm::new(&format!("{} (y/n)", description))
-                .prompt()?
-                .to_string(),
-            _ => inquire::Text::new(&description).prompt()?,
-        })
-    };
+    let prompt_value = Arc::new(
+        |value_type: String,
+         description: String,
+         choices: Option<Vec<String>>|
+         -> eyre::Result<String> {
+            Ok(match value_type.as_str() {
+                "enum" => inquire::Select::new(&description, choices.expect("choices to be some"))
+                    .prompt()?,
+                "bool" => inquire::Confirm::new(&format!("{} (y/n)", description))
+                    .prompt()?
+                    .to_string(),
+                _ => inquire::Text::new(&description).prompt()?,
+            })
+        },
+    );
 
     match cli.command {
         Commands::Show {

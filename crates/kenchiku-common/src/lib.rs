@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::meta::ValueMeta;
 
@@ -14,11 +14,8 @@ pub struct Context {
     pub allow_overwrite: bool,
     pub values_meta: HashMap<String, ValueMeta>,
     pub values: HashMap<String, String>,
-    pub prompt_value: fn(
-        r#type: String,
-        description: String,
-        choices: Option<Vec<String>>,
-    ) -> eyre::Result<String>,
+    pub prompt_value:
+        Arc<dyn Fn(String, String, Option<Vec<String>>) -> eyre::Result<String> + Send + Sync>,
 }
 
 impl Default for Context {
@@ -32,7 +29,17 @@ impl Default for Context {
             allow_overwrite: false,
             values_meta: Default::default(),
             values: Default::default(),
-            prompt_value: |_, _, _| Ok("".to_string()),
+            prompt_value: Arc::new(|_, _, _| Ok("".to_string())),
         }
+    }
+}
+
+pub trait IntoLuaErrDebug<T> {
+    fn into_lua_err_debug(self) -> mlua::Result<T>;
+}
+
+impl<T> IntoLuaErrDebug<T> for eyre::Result<T> {
+    fn into_lua_err_debug(self) -> mlua::Result<T> {
+        self.map_err(|e| mlua::Error::external(format!("{:?}", e)))
     }
 }

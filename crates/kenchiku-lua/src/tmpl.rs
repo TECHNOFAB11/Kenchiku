@@ -1,6 +1,7 @@
-use eyre::Result;
+use eyre::{Context as _, Result};
 use kenchiku_common::Context;
-use mlua::{ExternalResult, Lua};
+use kenchiku_common::IntoLuaErrDebug;
+use mlua::Lua;
 use regex::Regex;
 
 pub struct LuaTmpl;
@@ -21,8 +22,8 @@ impl LuaTmpl {
                 )| {
                     // TODO: options like replace all, replace first, etc.
                     let re = Regex::new(&pattern)
-                        .map_err(|e| format!("Invalid regex pattern '{}': {}", pattern, e))
-                        .into_lua_err()?;
+                        .wrap_err(format!("Invalid regex pattern '{}'", pattern))
+                        .into_lua_err_debug()?;
                     let modified_content = re.replace_all(&content, replacement).to_string();
                     Ok(modified_content)
                 },
@@ -107,7 +108,7 @@ mod tests {
             r#"
                     tmpl.patch("hello world", "[", "universe")
                 "#,
-            "Invalid regex pattern '[': ",
+            "Invalid regex pattern '['",
         )];
 
         for (name, script, error_message) in error_cases {

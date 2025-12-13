@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use eyre::{Result, eyre};
-use kenchiku_common::Context;
-use mlua::{ExternalError, FromLua, Lua};
+use kenchiku_common::{Context, IntoLuaErrDebug};
+use mlua::{FromLua, Lua};
 use tracing::debug;
 
 pub struct LuaFS;
@@ -29,10 +29,10 @@ impl LuaFS {
                     "workdir" => validate_path(&working_dir, path)?,
                     "scaffold" => validate_path(&scaffold_dir, path)?,
                     _ => {
-                        return Err(
-                            eyre!("Invalid read source, must be one of workdir,scaffold")
-                                .into_lua_err(),
-                        );
+                        return Err(eyre!(
+                            "Invalid read source, must be one of workdir,scaffold"
+                        ))
+                        .into_lua_err_debug();
                     }
                 };
 
@@ -84,7 +84,8 @@ impl FromLua for LuaFsReadOpts {
             // allow not passing any options table, then default to default
             mlua::Value::Nil => return Ok(Self::default()),
             other => {
-                return Err(eyre!("Opts needs to be a table, received {:?}", other).into_lua_err());
+                return Err(eyre!("Opts needs to be a table, received {:?}", other))
+                    .into_lua_err_debug();
             }
         };
         Ok(Self {
