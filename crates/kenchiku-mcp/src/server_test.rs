@@ -7,7 +7,10 @@ use rmcp::{
     },
     service::{NotificationContext, RequestContext, RunningService, Service},
 };
+use std::sync::Mutex;
 use tokio::io::duplex;
+
+static SEQUENTIAL_MUTEX: Mutex<()> = Mutex::new(());
 
 struct TestClient {
     info: ClientInfo,
@@ -106,6 +109,7 @@ async fn test_mcp_server_list_tools() {
 
 #[tokio::test]
 async fn test_mcp_server_read_tool() {
+    let _lock = SEQUENTIAL_MUTEX.lock().unwrap();
     use rmcp::model::{CallToolRequestParam, CallToolResult};
     use std::env;
     use std::path::Path;
@@ -173,6 +177,7 @@ async fn test_mcp_server_read_tool() {
 
 #[tokio::test]
 async fn test_mcp_server_call_list_tool() {
+    let _lock = SEQUENTIAL_MUTEX.lock().unwrap();
     use rmcp::model::{CallToolRequestParam, CallToolResult};
     use std::env;
     use std::path::Path;

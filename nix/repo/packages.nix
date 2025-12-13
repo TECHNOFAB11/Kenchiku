@@ -1,7 +1,8 @@
 {inputs, ...}: let
   inherit (inputs) parent pkgs fenix;
-in {
-  default =
+in rec {
+  default = kenchiku;
+  kenchiku =
     (pkgs.makeRustPlatform {
       inherit (fenix.minimal) cargo rustc;
     }).buildRustPackage {

@@ -31,6 +31,13 @@ in
             reports.junit = "target/nextest/ci/junit.xml";
           };
         };
+        "build" = {
+          stage = "build";
+          script = [
+            # sh
+            "nix build .#kenchiku"
+          ];
+        };
         "docs" = {
           stage = "build";
           script = [
