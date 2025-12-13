@@ -133,12 +133,17 @@ local name = values.get("project_name")
 
 ### `exec.run(command)`
 
-Run a command using `sh -c`. Returns stdout as a string.
+Run a command using `sh -c`. Returns a table with:
+
+- `stdout` (string): Standard output
+- `stderr` (string): Standard error
+- `exit_code` (integer): Exit code of the command
 
 **Example**
 
 ```lua
-exec.run("pwd")
+local result = exec.run("pwd")
+print(result.stdout)
 ```
 
 ## `json` Module

@@ -31,16 +31,18 @@ impl LuaExec {
                     .output()
                     .map_err(mlua::Error::external)?;
 
-                if output.status.success() {
-                    Ok(mlua::Value::String(lua.create_string(
-                        String::from_utf8_lossy(&output.stdout).to_string(),
-                    )?))
-                } else {
-                    Err(mlua::Error::external(format!(
-                        "Command failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    )))
-                }
+                let result_table = lua.create_table()?;
+                result_table.set(
+                    "stdout",
+                    String::from_utf8_lossy(&output.stdout).to_string(),
+                )?;
+                result_table.set(
+                    "stderr",
+                    String::from_utf8_lossy(&output.stderr).to_string(),
+                )?;
+                result_table.set("exit_code", output.status.code())?;
+
+                Ok(mlua::Value::Table(result_table))
             })?,
         )?;
 
@@ -85,8 +87,9 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("echo 'Hello World'")
-            assert(type(result) == "string")
-            assert(result:match("Hello World") ~= nil)
+            assert(type(result) == "table")
+            assert(result.stdout:match("Hello World") ~= nil)
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -103,7 +106,8 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("echo -n 'test123'")
-            assert(result == "test123")
+            assert(result.stdout == "test123")
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -120,9 +124,10 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("echo 'line1'; echo 'line2'; echo 'line3'")
-            assert(result:match("line1") ~= nil)
-            assert(result:match("line2") ~= nil)
-            assert(result:match("line3") ~= nil)
+            assert(result.stdout:match("line1") ~= nil)
+            assert(result.stdout:match("line2") ~= nil)
+            assert(result.stdout:match("line3") ~= nil)
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -141,8 +146,9 @@ mod tests {
         lua.load(&format!(
             r#"
             local result = exec.run("pwd")
-            local trimmed = result:gsub("%s+$", "")
+            local trimmed = result.stdout:gsub("%s+$", "")
             assert(trimmed == "{}")
+            assert(result.exit_code == 0)
         "#,
             expected_dir.display()
         ))
@@ -160,12 +166,16 @@ mod tests {
         let result = lua
             .load(
                 r#"
-            exec.run("exit 1")
+            local result = exec.run("exit 1")
+            assert(result.exit_code == 1)
         "#,
             )
             .exec();
 
-        assert!(result.is_err(), "Should fail on non-zero exit code");
+        assert!(
+            result.is_ok(),
+            "Should not fail on non-zero exit code, but return it"
+        );
 
         Ok(())
     }
@@ -179,12 +189,14 @@ mod tests {
         let result = lua
             .load(
                 r#"
-            exec.run("this_command_definitely_does_not_exist_12345")
+            local result = exec.run("this_command_definitely_does_not_exist_12345")
+            assert(result.exit_code == 127)
+            assert(result.stderr ~= "")
         "#,
             )
             .exec();
 
-        assert!(result.is_err(), "Should fail on nonexistent command");
+        assert!(result.is_ok(), "Should return table with exit code 127");
 
         Ok(())
     }
@@ -198,17 +210,14 @@ mod tests {
         let result = lua
             .load(
                 r#"
-            exec.run("echo 'error message' >&2; exit 1")
+            local result = exec.run("echo 'error message' >&2; exit 1")
+            assert(result.exit_code == 1)
+            assert(result.stderr:match("error message") ~= nil)
         "#,
             )
             .exec();
 
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err().to_string();
-        assert!(
-            err_msg.contains("error message"),
-            "Error should contain stderr output"
-        );
+        assert!(result.is_ok());
 
         Ok(())
     }
@@ -340,7 +349,8 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("echo 'hello world' | tr 'a-z' 'A-Z'")
-            assert(result:match("HELLO WORLD") ~= nil)
+            assert(result.stdout:match("HELLO WORLD") ~= nil)
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -357,8 +367,9 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("")
-            assert(type(result) == "string")
-            assert(result == "")
+            assert(type(result) == "table")
+            assert(result.stdout == "")
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -375,7 +386,8 @@ mod tests {
         lua.load(
             r#"
             local result = exec.run("TEST_VAR=hello; echo $TEST_VAR")
-            assert(result:match("hello") ~= nil)
+            assert(result.stdout:match("hello") ~= nil)
+            assert(result.exit_code == 0)
         "#,
         )
         .exec()?;
@@ -395,9 +407,9 @@ mod tests {
             local result2 = exec.run("echo 'second'")
             local result3 = exec.run("echo 'third'")
 
-            assert(result1:match("first") ~= nil)
-            assert(result2:match("second") ~= nil)
-            assert(result3:match("third") ~= nil)
+            assert(result1.stdout:match("first") ~= nil)
+            assert(result2.stdout:match("second") ~= nil)
+            assert(result3.stdout:match("third") ~= nil)
         "#,
         )
         .exec()?;
