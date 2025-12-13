@@ -1,4 +1,4 @@
-use std::{env::current_dir, path::PathBuf};
+use std::{collections::HashMap, env::current_dir, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 use eyre::eyre;
@@ -44,6 +44,9 @@ pub enum Commands {
         /// Force will overwrite existing files in the output path.
         #[arg(short, long)]
         force: bool,
+        /// Values to set before running. Can be repeated.
+        #[arg(short('s'), long("set"), value_name = "VALUE")]
+        values: Vec<String>,
     },
     /// Runs a patch of a scaffold
     Patch {
@@ -55,6 +58,9 @@ pub enum Commands {
         /// Auto confirm actions, use multiple times to auto confirm more dangerous actions.
         #[arg(short, long, action = clap::ArgAction::Count)]
         confirm_all: u8,
+        /// Values to set before running. Can be repeated.
+        #[arg(short('s'), long("set"), value_name = "VALUE")]
+        values: Vec<String>,
     },
     /// Starts the MCP server (stdio)
     Mcp,
@@ -79,6 +85,21 @@ fn main() -> eyre::Result<()> {
         .map_err(|e| eyre::eyre!("Failed to set tracing subscriber: {}", e))?;
 
     info!(VERSION, "Kenchiku running");
+
+    let prompt_value = |value_type: String,
+                        description: String,
+                        choices: Option<Vec<String>>|
+     -> eyre::Result<String> {
+        Ok(match value_type.as_str() {
+            "enum" => {
+                inquire::Select::new(&description, choices.expect("choices to be some")).prompt()?
+            }
+            "bool" => inquire::Confirm::new(&format!("{} (y/n)", description))
+                .prompt()?
+                .to_string(),
+            _ => inquire::Text::new(&description).prompt()?,
+        })
+    };
 
     match cli.command {
         Commands::Show {
@@ -105,8 +126,9 @@ fn main() -> eyre::Result<()> {
             output,
             confirm_all,
             force,
+            values,
         } => {
-            info!(scaffold_name, "Starting construction...");
+            info!(scaffold_name, ?values, "Starting construction...");
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
@@ -122,6 +144,16 @@ fn main() -> eyre::Result<()> {
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
                 },
                 allow_overwrite: force,
+                values_meta: scaffold.meta.values.clone(),
+                values: values
+                    .iter()
+                    .map(|val| {
+                        val.split_once("=")
+                            .map(|vals| (vals.0.to_string(), vals.1.to_string()))
+                            .ok_or_else(|| eyre!("Invalid value format: {}", val))
+                    })
+                    .collect::<Result<HashMap<String, String>, _>>()?,
+                prompt_value,
             };
             scaffold.construct(context)?;
             // only disable cleanup if we constructed successfully
@@ -131,6 +163,7 @@ fn main() -> eyre::Result<()> {
             patch,
             output,
             confirm_all,
+            values,
         } => {
             let mut split = patch.split(":");
             let scaffold_name = split
@@ -140,7 +173,7 @@ fn main() -> eyre::Result<()> {
                 "no patch name found in {}, did you use the format '<scaffold>:<patch>'?",
                 patch
             ))?;
-            info!(scaffold_name, patch_name, "Starting patching...");
+            info!(scaffold_name, patch_name, ?values, "Starting patching...");
             let scaffold_path =
                 discover_scaffold(scaffold_name.to_string()).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
@@ -153,10 +186,26 @@ fn main() -> eyre::Result<()> {
                 confirm_fn: |message: String| {
                     Ok(Confirm::new(&message).with_default(false).prompt()?)
                 },
+                values_meta: scaffold
+                    .meta
+                    .patches
+                    .get(patch_name)
+                    .expect("patch to exist here")
+                    .values
+                    .clone(),
+                values: values
+                    .iter()
+                    .map(|val| {
+                        val.split_once("=")
+                            .map(|vals| (vals.0.to_string(), vals.1.to_string()))
+                            .ok_or_else(|| eyre!("Invalid value format: {}", val))
+                    })
+                    .collect::<Result<HashMap<String, String>, _>>()?,
+                prompt_value,
                 ..Default::default()
             };
             scaffold.call_patch(patch_name, context)?;
-        },
+        }
         Commands::Mcp => {
             kenchiku_mcp::server::run_blocking()?;
         }

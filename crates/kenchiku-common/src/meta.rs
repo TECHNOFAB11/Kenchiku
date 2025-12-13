@@ -22,7 +22,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValueMeta {
     pub r#type: String,
     pub description: String,

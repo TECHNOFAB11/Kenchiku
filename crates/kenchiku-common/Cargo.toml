@@ -5,3 +5,4 @@ edition.workspace = true
 
 [dependencies]
 eyre.workspace = true
+mlua.workspace = true

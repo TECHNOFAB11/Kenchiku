@@ -17,6 +17,18 @@ return {
 
 		local result = tmpl.patch("hello world", "hello", "konnichiwa")
 		print("result: " .. result)
+
+		local value = values.get("example") ---@type string
+		print("Value is: " .. tostring(value))
+
+		local boolean = values.get("boolean") ---@type boolean
+		print("Bool is: " .. tostring(boolean))
+
+		local enum = values.get("enum") ---@type string
+		print("Enum is: " .. tostring(enum))
+
+		-- local invalid = values.get("invalid")
+		-- print("Should not reach this")
 	end,
 	values = {
 		example = {
@@ -24,10 +36,14 @@ return {
 			type = "string",
 			default = "Example!",
 		},
-		test = {
+		enum = {
 			description = "Test",
 			type = "enum",
 			choices = { "option1", "option2" },
+		},
+		boolean = {
+			description = "Some bool",
+			type = "bool",
 		},
 	},
 	patches = {

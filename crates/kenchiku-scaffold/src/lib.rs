@@ -1,17 +1,18 @@
 use eyre::{Context as _, Result, eyre};
-use kenchiku_common::Context;
-use kenchiku_lua::{exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, tmpl::LuaTmpl};
+use kenchiku_common::{
+    Context,
+    meta::{ScaffoldMeta, ValueMeta},
+};
+use kenchiku_lua::{
+    exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, tmpl::LuaTmpl, values::LuaValues,
+};
 use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::{debug, info, warn};
 
-use crate::{
-    meta::{ScaffoldMeta, ValueMeta},
-    utils::move_files_to_destination,
-};
+use crate::utils::move_files_to_destination;
 
 pub mod discovery;
-mod meta;
 mod utils;
 
 #[derive(Debug)]
@@ -69,7 +70,8 @@ impl Scaffold {
         LuaFS::register(&self.lua, context.clone())?;
         LuaExec::register(&self.lua, context.clone())?;
         LuaTmpl::register(&self.lua, context.clone())?;
-        LuaJson::register(&self.lua, context)?;
+        LuaJson::register(&self.lua, context.clone())?;
+        LuaValues::register(&self.lua, context)?;
         Ok(())
     }
 

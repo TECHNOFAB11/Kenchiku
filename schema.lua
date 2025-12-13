@@ -24,6 +24,12 @@ exec = nil
 ---@type tmpl_global
 tmpl = nil
 
+---@class values_global
+---@field get fun(id: string): any Get a value, prompting the user if it isn't set.
+
+---@type values_global
+values = nil
+
 ---@param msg string Log a warning.
 function warn(msg) end
 
