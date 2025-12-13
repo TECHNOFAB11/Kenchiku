@@ -10,5 +10,6 @@ in rec {
       version = "latest";
       src = parent.self;
       cargoLock.lockFile = "${parent.self}/Cargo.lock";
+      LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
     };
 }
