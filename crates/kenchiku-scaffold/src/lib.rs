@@ -10,9 +10,10 @@ use mlua::{FromLua, Lua};
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::{debug, info, warn};
 
-use crate::utils::move_files_to_destination;
+use crate::{requirer::SimpleRequirer, utils::move_files_to_destination};
 
 pub mod discovery;
+mod requirer;
 mod utils;
 
 #[derive(Debug)]
@@ -41,6 +42,8 @@ impl Scaffold {
 
         let lua = Lua::new();
         lua.sandbox(true)?;
+        let require_fn = lua.create_require_function(SimpleRequirer::new(path.clone()))?;
+        lua.globals().set("require", require_fn)?;
 
         let file_content = read_to_string(&scaffold_lua_path)?;
         let scaffold_content: mlua::Value = lua

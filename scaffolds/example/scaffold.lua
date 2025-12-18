@@ -1,14 +1,17 @@
+local module = require("./module")
+
 ---@type Scaffold
 return {
 	description = "Example!",
 	construct = function()
 		print("constructing scaffold")
+		print("module says hello " .. module.hello)
 		local exists = fs.exists("scaffold.lua")
 
 		print("scaffold.lua exists? " .. tostring(exists))
 
-		local stdout = exec.run("pwd")
-		warn("PWD: " .. stdout)
+		local res = exec.run("pwd")
+		warn("PWD: " .. res.stdout)
 
 		fs.write("hello.txt", "hello world!")
 
