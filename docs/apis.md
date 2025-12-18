@@ -10,20 +10,7 @@ Kenchiku provides a bunch of Lua globals to scaffolds to do anything useful.
     1. allow code execution
     1. annoy everyone with prompts
 
-If you use `lua-language-server`, download `schema.lua` from the repo and create
-a `.luarc.json` like this to benefit from autocompletion. Unfortunately there is no easier
-solution since `luals` doesn't support loading libraries from URLs.
-
-```json title=".luarc.json"
-{
-  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
-  "workspace": {
-    "library": [
-      "/path/to/schema.lua"
-    ]
-  }
-}
-```
+See [LuaLS Setup](./luals_setup.md) for setting up the **lua**-**L**anguage-**S**erver.
 
 ## General
 
