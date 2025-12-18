@@ -13,7 +13,7 @@ It leverages Lua for flexible scaffold definitions and includes a MCP server for
 
 - **Lua-Powered Scaffolds**: Define complex scaffolding logic, file generation, and patching using the full power of Lua.
 - **CLI Interface**: Easy-to-use command-line interface for managing and using scaffolds.
-- **MCP Server**: Built-in MCP server allows AI assistants (like Claude or IDE agents) to discover, read, and use scaffolds directly
+- **MCP Server**: Built-in MCP server allows AI assistants (like Claude or IDE agents) to discover, read, and use scaffolds directly.
 - **Patching System**: Not just for new projects, Kenchiku can also apply patches to existing codebases, allowing for granular updates and feature additions.
 - **Interactive Prompts**: Scaffolds can define required values, which Kenchiku will interactively prompt the user for (with support for text, booleans, and enums). Also supports pre-defined values with `--set`.
 
