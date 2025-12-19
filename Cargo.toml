@@ -15,4 +15,5 @@ kenchiku-mcp = { path = "crates/kenchiku-mcp" }
 eyre = "0.6.12"
 tracing = "0.1.43"
 mlua = { version = "0.11.5", features = ["vendored", "send", "luau", "serde"] }
+minijinja = { version = "2.14.0", features = ["loader", "builtins"] }
 tempfile = "3"

@@ -1,5 +1,5 @@
 use eyre::{Context as _, Result};
-use kenchiku_common::{Context, IntoLuaErrDebug};
+use kenchiku_common::{Context, IntoLuaErrDebug, minijinja_extras};
 use minijinja::Environment;
 use mlua::{ExternalResult, Lua};
 use regex::Regex;
@@ -38,6 +38,7 @@ impl LuaTmpl {
             lua.create_function(move |_lua, (template, vars): (String, mlua::Table)| {
                 let mut env = Environment::new();
                 env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
+                env = minijinja_extras::register(env);
                 env.add_template("inline", &template).into_lua_err()?;
                 let template = env.get_template("inline").into_lua_err()?;
                 Ok(template.render(vars).into_lua_err()?)
@@ -49,6 +50,7 @@ impl LuaTmpl {
             lua.create_function(move |_lua, (file, vars): (String, mlua::Table)| {
                 let mut env = Environment::new();
                 env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
+                env = minijinja_extras::register(env);
                 let context = context.clone();
                 env.set_loader(move |path| {
                     let path =

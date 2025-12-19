@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use crate::meta::ValueMeta;
 
 pub mod meta;
+pub mod minijinja_extras;
 
 #[derive(Clone)]
 pub struct Context {
