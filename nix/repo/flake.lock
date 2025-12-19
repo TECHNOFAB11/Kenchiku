@@ -17,6 +17,23 @@
         "type": "gitlab"
       }
     },
+    "devtools-lib": {
+      "locked": {
+        "dir": "lib",
+        "lastModified": 1766156972,
+        "narHash": "sha256-I3d8XF+/bTLKSfqbsDXjrIiPJtG29XyeV9+j6Z8OnP8=",
+        "owner": "rensa-nix",
+        "repo": "devtools",
+        "rev": "d609fd52fba752234e8d3285cf828bd937199c3a",
+        "type": "gitlab"
+      },
+      "original": {
+        "dir": "lib",
+        "owner": "rensa-nix",
+        "repo": "devtools",
+        "type": "gitlab"
+      }
+    },
     "fenix": {
       "flake": false,
       "locked": {
@@ -36,17 +53,17 @@
     "nix-gitlab-ci-lib": {
       "locked": {
         "dir": "lib",
-        "lastModified": 1764792166,
-        "narHash": "sha256-NUlXqkZMXx23/6SllGWqp6Z8OMDdSIOv7xBPl57G4Z0=",
+        "lastModified": 1765444672,
+        "narHash": "sha256-B0cMjRs9P50ym9Le0VUcRN69Yy6tbV13MXq81tTTEus=",
         "owner": "TECHNOFAB",
         "repo": "nix-gitlab-ci",
-        "rev": "8a77208ebe29fe7b3ba60bec3d48868049f93013",
+        "rev": "8f88a53b5479773cd626420362631bc1da99e677",
         "type": "gitlab"
       },
       "original": {
         "dir": "lib",
         "owner": "TECHNOFAB",
-        "ref": "3.1.1",
+        "ref": "3.1.2",
         "repo": "nix-gitlab-ci",
         "type": "gitlab"
       }
@@ -71,6 +88,7 @@
     "root": {
       "inputs": {
         "devshell-lib": "devshell-lib",
+        "devtools-lib": "devtools-lib",
         "fenix": "fenix",
         "nix-gitlab-ci-lib": "nix-gitlab-ci-lib",
         "nixmkdocs-lib": "nixmkdocs-lib",

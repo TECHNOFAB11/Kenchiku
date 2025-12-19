@@ -1,9 +1,10 @@
 {
   inputs = {
     devshell-lib.url = "gitlab:rensa-nix/devshell?dir=lib";
-    nix-gitlab-ci-lib.url = "gitlab:TECHNOFAB/nix-gitlab-ci/3.1.1?dir=lib";
+    nix-gitlab-ci-lib.url = "gitlab:TECHNOFAB/nix-gitlab-ci/3.1.2?dir=lib";
     soonix-lib.url = "gitlab:TECHNOFAB/soonix?dir=lib";
     nixmkdocs-lib.url = "gitlab:TECHNOFAB/nixmkdocs?dir=lib";
+    devtools-lib.url = "gitlab:rensa-nix/devtools?dir=lib";
     fenix = {
       url = "github:nix-community/fenix";
       flake = false;

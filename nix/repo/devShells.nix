@@ -3,36 +3,55 @@
   cell,
   ...
 }: let
-  inherit (inputs) pkgs devshell treefmt fenix;
+  inherit (inputs) pkgs devshell treefmt fenix devtools-lib;
   inherit (cell) soonix;
+  treefmtWrapper = treefmt.mkWrapper pkgs {
+    projectRootFile = "flake.nix";
+    programs = {
+      alejandra.enable = true;
+      mdformat.enable = true;
+      rustfmt.enable = true;
+      stylua.enable = true;
+    };
+    settings.formatter.mdformat.command = let
+      pkg = pkgs.python3.withPackages (p: [
+        p.mdformat
+        p.mdformat-mkdocs
+      ]);
+    in "${pkg}/bin/mdformat";
+  };
 in {
   default = devshell.mkShell {
-    imports = [soonix.devshellModule];
+    imports = [soonix.devshellModule devtools-lib.devshellModule];
     packages = [
       pkgs.gcc
       pkgs.rust-analyzer
       pkgs.cargo-nextest
       pkgs.lua-language-server
       fenix.minimal.toolchain
-      (treefmt.mkWrapper pkgs {
-        projectRootFile = "flake.nix";
-        programs = {
-          alejandra.enable = true;
-          mdformat.enable = true;
-          rustfmt.enable = true;
-          stylua.enable = true;
-        };
-        settings.formatter.mdformat.command = let
-          pkg = pkgs.python3.withPackages (p: [
-            p.mdformat
-            p.mdformat-mkdocs
-          ]);
-        in "${pkg}/bin/mdformat";
-      })
+      treefmtWrapper
     ];
     env = {
       KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
       LD_LIBRARY_PATH.value = "${pkgs.stdenv.cc.cc.lib}/lib";
+    };
+    lefthook.config = {
+      "pre-commit" = {
+        parallel = true;
+        jobs = [
+          {
+            name = "treefmt";
+            stage_fixed = true;
+            run = "${treefmtWrapper}/bin/treefmt";
+            env.TERM = "dumb";
+          }
+          {
+            name = "soonix";
+            stage_fixed = true;
+            run = "${soonix.packages."soonix:update"}/bin/soonix:update";
+          }
+        ];
+      };
     };
   };
 }
