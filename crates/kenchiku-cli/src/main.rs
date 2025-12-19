@@ -89,15 +89,40 @@ fn main() -> eyre::Result<()> {
     let prompt_value = Arc::new(
         |value_type: String,
          description: String,
-         choices: Option<Vec<String>>|
+         choices: Option<Vec<String>>,
+         default: Option<String>|
          -> eyre::Result<String> {
             Ok(match value_type.as_str() {
-                "enum" => inquire::Select::new(&description, choices.expect("choices to be some"))
-                    .prompt()?,
-                "bool" => inquire::Confirm::new(&format!("{} (y/n)", description))
-                    .prompt()?
-                    .to_string(),
-                _ => inquire::Text::new(&description).prompt()?,
+                "enum" => {
+                    let choices =
+                        choices.ok_or_else(|| eyre::eyre!("choices required for enum"))?;
+                    let mut select = inquire::Select::new(&description, choices.clone());
+                    if let Some(def) = &default {
+                        let cursor = choices
+                            .iter()
+                            .position(|el| el == def)
+                            .ok_or_else(|| eyre::eyre!("default not in choices"))?;
+                        select = select.with_starting_cursor(cursor);
+                    }
+                    select.prompt()?
+                }
+                "bool" => {
+                    let msg = format!("{} (y/n)", description);
+                    let mut query = inquire::Confirm::new(&msg);
+                    if let Some(def) = &default {
+                        query = inquire::Confirm::new(&description)
+                            .with_default(def == "true")
+                            .with_placeholder(if def == "true" { "y" } else { "n" });
+                    }
+                    query.prompt().map(|b| b.to_string())?
+                }
+                _ => {
+                    let mut text = inquire::Text::new(&description);
+                    if let Some(def) = &default {
+                        text = text.with_default(&def).with_placeholder(&def);
+                    }
+                    text.prompt()?
+                }
             })
         },
     );

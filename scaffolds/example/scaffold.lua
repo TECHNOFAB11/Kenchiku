@@ -52,10 +52,12 @@ Hello world! {{ a }}
 			description = "Test",
 			type = "enum",
 			choices = { "option1", "option2" },
+			default = "option2",
 		},
 		boolean = {
 			description = "Some bool",
 			type = "bool",
+			default = true,
 		},
 	},
 	patches = {

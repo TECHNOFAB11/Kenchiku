@@ -30,24 +30,16 @@ impl LuaValues {
                         id,
                     );
                 }
-                // 2. if default exists
-                if meta.default.is_some() {
-                    trace!(id, "Default exists");
-                    return match meta.r#type.as_str() {
-                        "enum" => validate_enum_contains(
-                            &lua,
-                            meta.choices.clone(),
-                            &meta.default.clone().unwrap().to_string()?,
-                        ),
-                        _ => Ok(meta.default.clone().unwrap()),
-                    };
-                }
-                // 3. if we have no value, ask the user
+                // 2. if value is unset, ask the user
                 trace!(id, "Asking user for value...");
                 let answer = (context.prompt_value)(
                     meta.r#type.clone(),
                     meta.description.clone(),
                     meta.choices.clone(),
+                    meta.default.clone().map(|v| {
+                        v.to_string()
+                            .expect("lua default should be serializable to string")
+                    }),
                 )
                 .into_lua_err_debug()?;
                 return string_to_value_of_type(
@@ -122,7 +114,7 @@ mod tests {
         Context {
             values,
             values_meta,
-            prompt_value: Arc::new(move |_type, _desc, _choices| {
+            prompt_value: Arc::new(move |_type, _desc, _choices, _default| {
                 Ok(prompt_response.clone().unwrap_or_default())
             }),
             ..Default::default()
@@ -428,7 +420,9 @@ mod tests {
         let context = Context {
             values,
             values_meta,
-            prompt_value: Arc::new(|_type, _desc, _choices| Ok("PromptedValue".to_string())),
+            prompt_value: Arc::new(|_type, _desc, _choices, _default| {
+                Ok("PromptedValue".to_string())
+            }),
             ..Default::default()
         };
 
