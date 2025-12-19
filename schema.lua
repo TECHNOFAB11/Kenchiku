@@ -12,8 +12,13 @@
 ---@type fs_global
 fs = nil
 
+---@class ExecRunResult
+---@field stdout string Stdout of the program.
+---@field stderr string Stderr of the program.
+---@field status_code integer Statuscode of the program.
+
 ---@class exec_global
----@field run fun(command: string): string Runs a command in the working dir.
+---@field run fun(command: string): ExecRunResult Runs a command in the working dir.
 
 ---@type exec_global
 exec = nil
