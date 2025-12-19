@@ -87,6 +87,7 @@ tmpl.patch("hello world", "w+", "konnichiwa")
 ### `tmpl.template(template_string, vars)`
 
 Renders a [MiniJinja](https://github.com/mitsuhiko/minijinja) template string with the given variables.
+See [Template Extras](./template_extras.md) for more filters & functions.
 
 **Example**
 
@@ -97,6 +98,7 @@ tmpl.template("Hello {{ name }}!", { name = "World" })
 ### `tmpl.template_file(file_path, vars)`
 
 Reads a file from the scaffold directory and renders it as a template.
+See [Template Extras](./template_extras.md) for more filters & functions.
 
 **Example**
 
@@ -119,6 +121,8 @@ local name = values.get("project_name")
 ## `exec` Module
 
 ### `exec.run(command)`
+
+_Confirmation Level_: **2**
 
 Run a command using `sh -c`. Returns a table with:
 

@@ -35,6 +35,7 @@ in
           {"CLI" = "cli.md";}
           {"Scaffolds" = "scaffolds.md";}
           {"Lua APIs" = "apis.md";}
+          {"Template Extras" = "template_extras.md";}
           {"Examples" = "examples.md";}
           {"MCP" = "mcp.md";}
           {"LuaLS Setup" = "luals_setup.md";}
