@@ -32,6 +32,7 @@ in {
       treefmtWrapper
     ];
     env = {
+      PATH.prefix = "$REN_ROOT/target/debug";
       KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
       LD_LIBRARY_PATH.value = "${pkgs.stdenv.cc.cc.lib}/lib";
     };

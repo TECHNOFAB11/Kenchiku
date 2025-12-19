@@ -101,50 +101,58 @@ impl Scaffold {
             .wrap_err("failed to call patch function")
     }
 
-    pub fn print(&self, writer: Option<&mut dyn std::io::Write>) -> std::io::Result<()> {
-        let mut stdout = std::io::stdout();
-        let writer: &mut dyn std::io::Write = match writer {
-            Some(w) => w,
-            None => &mut stdout,
-        };
-
-        let print_value = |writer: &mut dyn std::io::Write,
-                           value: (&String, &ValueMeta),
-                           indent: usize|
-         -> std::io::Result<()> {
-            let indent_str = " ".repeat(indent);
-            writeln!(writer, "{indent_str}- Name: {}", value.0)?;
-            writeln!(writer, "{indent_str}  Description: {}", value.1.description)?;
-            writeln!(writer, "{indent_str}  Type: {}", value.1.r#type)?;
-            if value.1.default.is_some() {
-                writeln!(
-                    writer,
-                    "{indent_str}  Default: {:?}",
-                    value.1.default.clone().unwrap()
-                )?;
-            }
-            if value.1.r#type == "enum" && value.1.choices.is_some() {
-                writeln!(writer, "{indent_str}  Choices:")?;
-                for choice in value.1.choices.clone().unwrap() {
-                    writeln!(writer, "{indent_str}    - {}", choice)?;
-                }
-            }
-            Ok(())
-        };
-
+    pub fn print(
+        &self,
+        writer: &mut dyn std::io::Write,
+        with_details: bool,
+    ) -> std::io::Result<()> {
         writeln!(writer, "Name: {}", self.name)?;
         writeln!(writer, "Description: {}", self.meta.description)?;
-        writeln!(writer, "Values:")?;
-        for value in &self.meta.values {
-            print_value(writer, value, 2)?;
+
+        if with_details {
+            writeln!(writer, "Values:")?;
+            for value in &self.meta.values {
+                print_value(writer, value, 2)?;
+            }
         }
+
         writeln!(writer, "Patches:")?;
         for patch in &self.meta.patches {
-            writeln!(writer, "  - Name: {}", patch.0)?;
-            writeln!(writer, "    Description: {}", patch.1.description)?;
-            writeln!(writer, "    Values:")?;
-            for value in &patch.1.values {
-                print_value(writer, value, 6)?;
+            self.print_patch(patch.0, writer, with_details, true)?;
+        }
+        Ok(())
+    }
+
+    pub fn print_patch(
+        &self,
+        name: &str,
+        writer: &mut dyn std::io::Write,
+        with_details: bool,
+        nested: bool,
+    ) -> std::io::Result<()> {
+        let patch = self
+            .meta
+            .patches
+            .get(name)
+            .ok_or_else(|| std::io::Error::other("patch not found"))?;
+
+        let indent = if nested { 4 } else { 0 };
+        let prefix = if nested { "  - " } else { "" };
+
+        writeln!(writer, "{prefix}Name: {}", name)?;
+        writeln!(
+            writer,
+            "{:indent$}Description: {}",
+            "",
+            patch.description,
+            indent = indent
+        )?;
+
+        if with_details {
+            writeln!(writer, "{:indent$}Values:", "", indent = indent)?;
+            let value_indent = if nested { 6 } else { 2 };
+            for value in &patch.values {
+                print_value(writer, value, value_indent)?;
             }
         }
         Ok(())
@@ -173,6 +181,31 @@ impl Scaffold {
         }
         Ok(())
     }
+}
+
+fn print_value(
+    writer: &mut dyn std::io::Write,
+    value: (&String, &ValueMeta),
+    indent: usize,
+) -> std::io::Result<()> {
+    let indent_str = " ".repeat(indent);
+    writeln!(writer, "{indent_str}- Name: {}", value.0)?;
+    writeln!(writer, "{indent_str}  Description: {}", value.1.description)?;
+    writeln!(writer, "{indent_str}  Type: {}", value.1.r#type)?;
+    if value.1.default.is_some() {
+        writeln!(
+            writer,
+            "{indent_str}  Default: {:?}",
+            value.1.default.clone().unwrap()
+        )?;
+    }
+    if value.1.r#type == "enum" && value.1.choices.is_some() {
+        writeln!(writer, "{indent_str}  Choices:")?;
+        for choice in value.1.choices.clone().unwrap() {
+            writeln!(writer, "{indent_str}    - {}", choice)?;
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

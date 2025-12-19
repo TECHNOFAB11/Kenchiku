@@ -104,75 +104,7 @@ async fn test_mcp_server_list_tools() {
     assert!(tool_names.contains(&"construct"));
     assert!(tool_names.contains(&"patch"));
     assert!(tool_names.contains(&"list"));
-    assert!(tool_names.contains(&"read"));
-}
-
-#[tokio::test]
-async fn test_mcp_server_read_tool() {
-    let _lock = SEQUENTIAL_MUTEX.lock().unwrap();
-    use rmcp::model::{CallToolRequestParam, CallToolResult};
-    use std::env;
-    use std::path::Path;
-    use tempfile::tempdir;
-    use tokio::fs;
-
-    // Setup scaffold
-    let temp_dir = tempdir().unwrap();
-    let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
-    let scaffold_name = "test-scaffold";
-    let scaffold_dir = Path::new(&temp_dir_path).join(scaffold_name);
-    fs::create_dir_all(&scaffold_dir).await.unwrap();
-    let scaffold_content = "print('Hello World')";
-    fs::write(scaffold_dir.join("scaffold.lua"), scaffold_content)
-        .await
-        .unwrap();
-
-    env::set_var("KENCHIKU_PATH", temp_dir_path.clone());
-
-    let client = setup_client().await;
-
-    client
-        .notify_initialized()
-        .await
-        .expect("Failed to notify initialized");
-
-    // Test valid read
-    let result: CallToolResult = client
-        .call_tool(CallToolRequestParam {
-            name: "read".into(),
-            arguments: Some(
-                serde_json::json!({ "scaffold_name": scaffold_name })
-                    .as_object()
-                    .unwrap()
-                    .clone(),
-            ),
-        })
-        .await
-        .expect("Failed to call read tool");
-
-    assert!(!result.is_error.unwrap_or(false));
-    assert_eq!(result.content.len(), 1);
-    assert_eq!(result.content[0].as_text().unwrap().text, scaffold_content);
-
-    // Test invalid read
-    let result: CallToolResult = client
-        .call_tool(CallToolRequestParam {
-            name: "read".into(),
-            arguments: Some(
-                serde_json::json!({ "scaffold_name": "non-existent" })
-                    .as_object()
-                    .unwrap()
-                    .clone(),
-            ),
-        })
-        .await
-        .expect("Failed to call read tool");
-
-    assert!(!result.is_error.unwrap_or(false));
-    assert_eq!(
-        result.content[0].as_text().unwrap().text,
-        "No scaffold with name 'non-existent' found"
-    );
+    assert!(tool_names.contains(&"show"));
 }
 
 #[tokio::test]
@@ -184,7 +116,6 @@ async fn test_mcp_server_call_list_tool() {
     use tempfile::tempdir;
     use tokio::fs;
 
-    // Setup scaffold
     let temp_dir = tempdir().unwrap();
     let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
     let scaffold_name = "list-test-scaffold";
@@ -223,3 +154,5 @@ async fn test_mcp_server_call_list_tool() {
     assert!(output.contains(&format!("Name: {}", scaffold_name)));
     assert!(output.contains("Description: A test scaffold for listing"));
 }
+
+// TODO: tests for other tools (show, etc.)

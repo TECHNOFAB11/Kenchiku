@@ -134,17 +134,20 @@ fn main() -> eyre::Result<()> {
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            scaffold.print(None)?;
+            let mut stdout = std::io::stdout();
+            scaffold.print(&mut stdout, true)?;
         }
         Commands::List => {
             let found_scaffolds = find_all_scaffolds()
                 .iter()
                 .map(|path| Scaffold::load(path.to_path_buf()))
                 .collect::<eyre::Result<Vec<Scaffold>>>()?;
-            println!("Found scaffolds:\n======");
+            let mut stdout = std::io::stdout();
+            use std::io::Write;
+            writeln!(stdout, "Found scaffolds:\n======")?;
             for scaffold in found_scaffolds {
-                scaffold.print(None)?;
-                println!("======");
+                scaffold.print(&mut stdout, false)?;
+                writeln!(stdout, "======")?;
             }
         }
         Commands::Construct {
