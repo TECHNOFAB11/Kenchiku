@@ -37,6 +37,7 @@ in
           {"Lua APIs" = "apis.md";}
           {"Examples" = "examples.md";}
           {"MCP" = "mcp.md";}
+          {"LuaLS Setup" = "luals_setup.md";}
         ];
         markdown_extensions = [
           {

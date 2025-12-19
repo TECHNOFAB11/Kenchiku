@@ -27,56 +27,57 @@ The `scaffold.lua` file is the entry point. It must return a Lua table with the 
 ```lua
 ---@type Scaffold (useful if you use luals)
 return {
-    description = "A brief description of the scaffold",
-    -- Define values to prompt the user for
-    values = {
-        project_name = {
-            description = "The name of the project",
-            type = "string",
-        },
-        database = {
-            description = "Database type",
-            type = "enum",
-            choices = { "postgres", "sqlite", "none" },
-            default = "none",
-        }
+  description = "A brief description of the scaffold",
+  -- Define values to prompt the user for
+  values = {
+    project_name = {
+      description = "The name of the project",
+      type = "string",
     },
-    -- The main function called when constructing the scaffold
-    construct = function()
-        local name = values.get("project_name") ---@type string
-        local db = values.get("database") ---@type string
-
-        fs.mkdir(name)
-
-        -- Render a template
-        local cargo_toml = tmpl.template_file("templates/Cargo.toml.j2", {
-            name = name,
-            database = db
-        })
-        fs.write(name .. "/Cargo.toml", cargo_toml)
-
-        print("Scaffold constructed successfully!")
-    end,
-    -- Optional patches for existing projects
-    patches = {
-        add_logging = {
-            description = "Adds logging to the project",
-            values = {}, -- Patches can also have their own values
-            run = function()
-                if fs.exists("Cargo.toml") then
-                    local content = fs.read("Cargo.toml", { source = "workdir" })
-                    -- Add tracing dependency if not present
-                    if not content:find("tracing") then
-                        -- Just an example, don't do this, you cannot know if [dependencies] is the last entry etc.
-                        local new_content = content .. '\ntracing = "0.1"\n'
-                        fs.write("Cargo.toml", new_content)
-                    end
-                else
-                    warn("Cargo.toml not found!")
-                end
-            end
-        }
+    database = {
+      description = "Database type",
+      type = "enum",
+      choices = { "postgres", "sqlite", "none" },
+      default = "none",
     }
+  },
+  -- The main function called when constructing the scaffold
+  construct = function()
+    local name = values.get("project_name") ---@type string
+    local db = values.get("database") ---@type string
+
+    fs.mkdir(name)
+
+    -- Render a template
+    local cargo_toml = tmpl.template_file("templates/Cargo.toml.j2", {
+      name = name,
+      database = db
+    })
+    fs.write(name .. "/Cargo.toml", cargo_toml)
+
+    print("Scaffold constructed successfully!")
+  end,
+  -- Optional patches for existing projects
+  patches = {
+    add_logging = {
+      description = "Adds logging to the project",
+      values = {}, -- Patches can also have their own values
+      run = function()
+        if fs.exists("Cargo.toml") then
+          local content = fs.read("Cargo.toml", { source = "workdir" })
+          -- Add tracing dependency if not present
+          if not content:find("tracing") then
+            -- Just an example, don't do this, you cannot know
+            --  if [dependencies] is the last entry etc.
+            local new_content = content .. '\ntracing = "0.1"\n'
+            fs.write("Cargo.toml", new_content)
+          end
+        else
+          warn("Cargo.toml not found!")
+        end
+      end
+    }
+  }
 }
 ```
 
