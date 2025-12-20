@@ -227,14 +227,153 @@ impl KenchikuMcpServer {
             output,
         }): Parameters<PatchArgs>,
     ) -> String {
-        tokio::task::spawn_blocking(move || {
-            format!(
-                "Patch tool called with name: {}, values: {:?}, output: {:?}",
-                name, values, output
-            )
+        let session = self.session.clone();
+
+        let mut session_guard = session.lock().await;
+        if session_guard.is_some() {
+            return "A session is already active. Please complete or cancel it first.".to_string();
+        }
+
+        let (scaffold_name, patch_name) = match name.split_once(':') {
+            Some((s, p)) => (s.to_string(), p.to_string()),
+            None => return "Invalid patch name format. Use '<scaffold>:<patch>'.".to_string(),
+        };
+
+        let output_path = if let Some(o) = output {
+            PathBuf::from(o)
+        } else {
+            match std::env::current_dir() {
+                Ok(p) => p,
+                Err(e) => return format!("Failed to get current directory: {}", e),
+            }
+        };
+
+        let scaffold_name_clone = scaffold_name.clone();
+        let scaffold_result = tokio::task::spawn_blocking(move || {
+            discover_scaffold(scaffold_name_clone).map(Scaffold::load)
         })
         .await
-        .unwrap_or_else(|e| e.to_string())
+        .unwrap_or_else(|e| Some(Err(eyre::eyre!(e))));
+
+        if let Some(Ok(scaffold)) = scaffold_result {
+            let patch_meta = match scaffold.meta.patches.get(&patch_name) {
+                Some(meta) => meta,
+                None => {
+                    return format!(
+                        "Patch '{}' not found in scaffold '{}'.",
+                        patch_name, scaffold_name
+                    );
+                }
+            };
+
+            let provided_values = values.unwrap_or_default();
+
+            let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
+            let (status_tx, mut status_rx) =
+                tokio::sync::mpsc::channel::<crate::session::Status>(1);
+
+            let scaffold_name_clone = scaffold_name.clone();
+            let patch_name_clone = patch_name.clone();
+            let output_path_clone = output_path.clone();
+            let provided_values_clone = provided_values.clone();
+            let patch_meta_values = patch_meta.values.clone();
+
+            let mut join_handle = tokio::task::spawn_blocking(move || -> eyre::Result<String> {
+                let current_values =
+                    std::sync::Arc::new(std::sync::Mutex::new(provided_values_clone));
+                let status_tx = status_tx.clone();
+                let cmd_rx = std::sync::Mutex::new(cmd_rx);
+
+                let current_values_clone = current_values.clone();
+                let status_tx_clone = status_tx.clone();
+                let prompt_value = Arc::new(
+                    move |name: String,
+                          type_: String,
+                          description: String,
+                          choices: Option<Vec<String>>,
+                          _default: Option<String>|
+                          -> eyre::Result<String> {
+                        loop {
+                            {
+                                let values = current_values_clone.lock().unwrap();
+                                if let Some(val) = values.get(&name) {
+                                    return Ok(val.to_string().trim_matches('"').to_string());
+                                }
+                            }
+
+                            // Request value
+                            let _ = status_tx_clone.blocking_send(
+                                crate::session::Status::MissingValue(MissingValueError {
+                                    name: name.clone(),
+                                    r#type: type_.clone(),
+                                    description: description.clone(),
+                                    choices: choices.clone(),
+                                }),
+                            );
+
+                            // Wait for new values
+                            let rx = cmd_rx.lock().unwrap();
+                            if let Ok(new_values) = rx.recv() {
+                                let mut values = current_values_clone.lock().unwrap();
+                                values.extend(new_values);
+                            } else {
+                                return Err(eyre::eyre!("Session cancelled"));
+                            }
+                        }
+                    },
+                );
+
+                let mut temp_dir = tempfile::tempdir()?;
+
+                let context = Context {
+                    working_dir: temp_dir.path().to_path_buf(),
+                    output: output_path_clone,
+                    scaffold_dir: scaffold.path.clone(),
+                    values: current_values
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v.to_string().trim_matches('"').to_string()))
+                        .collect(),
+                    values_meta: patch_meta_values,
+                    prompt_value,
+                    ..Default::default()
+                };
+
+                scaffold.call_patch(&patch_name_clone, context)?;
+                // only disable cleanup if we constructed successfully
+                temp_dir.disable_cleanup(true);
+                Ok(format!(
+                    "Patch '{}:{}' executed successfully.",
+                    scaffold_name_clone, patch_name_clone
+                ))
+            });
+
+            tokio::select! {
+                Some(crate::session::Status::MissingValue(missing)) = status_rx.recv() => {
+                    *session_guard = Some(Session {
+                        values: provided_values,
+                        missing_values: vec![missing.name.clone()],
+                        value_sender: cmd_tx,
+                        status_receiver: Some(status_rx),
+                        join_handle: Some(join_handle),
+                    });
+                    format!(
+                        "Missing value: {}. Description: {}. Type: {}. Please use `provide_values` to supply it.",
+                        missing.name, missing.description, missing.r#type
+                    )
+                }
+                result = &mut join_handle => {
+                    match result {
+                        Ok(Ok(msg)) => msg,
+                        Ok(Err(e)) => format!("{:?}", e),
+                        Err(e) => format!("{:?}", e),
+                    }
+                }
+            }
+        } else {
+            format!("Scaffold '{}' not found.", scaffold_name)
+        }
     }
 
     #[tool(description = "
