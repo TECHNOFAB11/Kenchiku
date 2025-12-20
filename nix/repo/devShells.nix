@@ -13,12 +13,15 @@
       rustfmt.enable = true;
       stylua.enable = true;
     };
-    settings.formatter.mdformat.command = let
-      pkg = pkgs.python3.withPackages (p: [
-        p.mdformat
-        p.mdformat-mkdocs
-      ]);
-    in "${pkg}/bin/mdformat";
+    settings.formatter.mdformat = {
+      command = let
+        pkg = pkgs.python3.withPackages (p: [
+          p.mdformat
+          p.mdformat-mkdocs
+        ]);
+      in "${pkg}/bin/mdformat";
+      excludes = ["CHANGELOG.md"];
+    };
   };
 in {
   default = devshell.mkShell {
@@ -57,6 +60,7 @@ in {
     };
     cocogitto.config = {
       tag_prefix = "v";
+      ignore_merge_commits = true;
       pre_bump_hooks = [
         "cargo build --release"
         "cargo set-version {{version}}"
@@ -64,6 +68,12 @@ in {
         "git add :/Cargo.lock"
       ];
       changelog = {
+        authors = [
+          {
+            username = "TECHNOFAB";
+            signature = "technofab";
+          }
+        ];
         path = "CHANGELOG.md";
         template = "remote";
         remote = "gitlab.com";
