@@ -33,6 +33,7 @@ impl LuaValues {
                 // 2. if value is unset, ask the user
                 trace!(id, "Asking user for value...");
                 let answer = (context.prompt_value)(
+                    id.clone(),
                     meta.r#type.clone(),
                     meta.description.clone(),
                     meta.choices.clone(),
@@ -114,7 +115,7 @@ mod tests {
         Context {
             values,
             values_meta,
-            prompt_value: Arc::new(move |_type, _desc, _choices, _default| {
+            prompt_value: Arc::new(move |_name, _type, _desc, _choices, _default| {
                 Ok(prompt_response.clone().unwrap_or_default())
             }),
             ..Default::default()
@@ -354,7 +355,7 @@ mod tests {
         let context = Context {
             values,
             values_meta,
-            prompt_value: Arc::new(|_type, _desc, _choices, _default| {
+            prompt_value: Arc::new(|_name, _type, _desc, _choices, _default| {
                 Ok("PromptedValue".to_string())
             }),
             ..Default::default()

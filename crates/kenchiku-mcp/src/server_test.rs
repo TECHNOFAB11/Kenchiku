@@ -155,4 +155,140 @@ async fn test_mcp_server_call_list_tool() {
     assert!(output.contains("Description: A test scaffold for listing"));
 }
 
-// TODO: tests for other tools (show, etc.)
+#[tokio::test]
+async fn test_mcp_server_session_flow() {
+    let _lock = SEQUENTIAL_MUTEX.lock().unwrap();
+    use rmcp::model::{CallToolRequestParam, CallToolResult};
+    use serde_json::json;
+    use std::{collections::HashMap, env, path::Path};
+    use tempfile::tempdir;
+    use tokio::fs;
+
+    let temp_dir = tempdir().unwrap();
+    let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
+    let scaffold_name = "session-test-scaffold";
+    let scaffold_dir = Path::new(&temp_dir_path).join(scaffold_name);
+    fs::create_dir_all(&scaffold_dir).await.unwrap();
+    let scaffold_content = r#"
+        return {
+            description = "A test scaffold for session",
+            values = {
+                name = {
+                    type = "string",
+                    description = "Name of the project",
+                },
+            },
+            construct = function()
+                local name = values.get("name")
+            end,
+        }
+    "#;
+    fs::write(scaffold_dir.join("scaffold.lua"), scaffold_content)
+        .await
+        .unwrap();
+
+    env::set_var("KENCHIKU_PATH", temp_dir_path.clone());
+
+    let client = setup_client().await;
+    client
+        .notify_initialized()
+        .await
+        .expect("Failed to notify initialized");
+
+    // 1. Call construct without values
+    let mut args = HashMap::new();
+    args.insert("scaffold_name".to_string(), json!(scaffold_name));
+
+    let result: CallToolResult = client
+        .call_tool(CallToolRequestParam {
+            name: "construct".into(),
+            arguments: Some(serde_json::Map::from_iter(args.into_iter())),
+        })
+        .await
+        .expect("Failed to call construct tool");
+
+    let output = &result.content[0].as_text().unwrap().text;
+    assert!(output.contains("Missing value: name"));
+    assert!(output.contains("Description:"));
+
+    // 2. Try to start another session (should fail)
+    let mut args = HashMap::new();
+    args.insert("scaffold_name".to_string(), json!(scaffold_name));
+
+    let result: CallToolResult = client
+        .call_tool(CallToolRequestParam {
+            name: "construct".into(),
+            arguments: Some(serde_json::Map::from_iter(args.into_iter())),
+        })
+        .await
+        .expect("Failed to call construct tool");
+
+    let output = &result.content[0].as_text().unwrap().text;
+    assert!(output.contains("A session is already active"));
+
+    // 3. Provide values
+    let mut values = HashMap::new();
+    values.insert("name".to_string(), json!("my-project"));
+    let mut args = HashMap::new();
+    args.insert("values".to_string(), json!(values));
+
+    let result: CallToolResult = client
+        .call_tool(CallToolRequestParam {
+            name: "provide_values".into(),
+            arguments: Some(serde_json::Map::from_iter(args.into_iter())),
+        })
+        .await
+        .expect("Failed to call provide_values tool");
+
+    let output = &result.content[0].as_text().unwrap().text;
+    println!("Output: {}", output);
+    assert!(output.contains("constructed successfully"));
+
+    // 4. Verify session is cleared (can start new one)
+    let mut args = HashMap::new();
+    args.insert("scaffold_name".to_string(), json!(scaffold_name));
+
+    let result: CallToolResult = client
+        .call_tool(CallToolRequestParam {
+            name: "construct".into(),
+            arguments: Some(serde_json::Map::from_iter(args.into_iter())),
+        })
+        .await
+        .expect("Failed to call construct tool");
+
+    let output = &result.content[0].as_text().unwrap().text;
+    assert!(output.contains("Missing value: name"));
+
+    // 5. Cancel session
+    let result: CallToolResult = client
+        .call_tool(CallToolRequestParam {
+            name: "cancel_session".into(),
+            arguments: None,
+        })
+        .await
+        .expect("Failed to call cancel_session tool");
+
+    let output = &result.content[0].as_text().unwrap().text;
+    assert!(output.contains("Session cancelled"));
+
+    // 6. Verify session is gone by trying to provide values
+    let provide_result = client
+        .call_tool(rmcp::model::CallToolRequestParam {
+            name: "provide_values".into(),
+            arguments: Some(
+                rmcp::serde_json::json!({
+                    "values": { "name": "test" }
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
+            ),
+        })
+        .await
+        .expect("Failed to call provide_values");
+
+    assert_eq!(
+        provide_result.content[0].as_text().unwrap().text,
+        "No active session."
+    );
+}

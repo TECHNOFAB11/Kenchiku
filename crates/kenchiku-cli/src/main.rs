@@ -87,7 +87,8 @@ fn main() -> eyre::Result<()> {
     info!(VERSION, "Kenchiku running");
 
     let prompt_value = Arc::new(
-        |value_type: String,
+        |_name: String,
+         value_type: String,
          description: String,
          choices: Option<Vec<String>>,
          default: Option<String>|

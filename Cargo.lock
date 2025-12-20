@@ -608,6 +608,7 @@ name = "kenchiku-mcp"
 version = "0.1.0"
 dependencies = [
  "eyre",
+ "kenchiku-common",
  "kenchiku-scaffold",
  "rmcp",
  "serde",

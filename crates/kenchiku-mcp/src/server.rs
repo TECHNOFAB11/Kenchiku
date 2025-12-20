@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use eyre::{Result, WrapErr};
+use kenchiku_common::Context;
 use kenchiku_scaffold::{
     Scaffold,
     discovery::{discover_scaffold, find_all_scaffolds},
@@ -11,12 +12,18 @@ use rmcp::{
     model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo, ToolsCapability},
     schemars, tool, tool_handler, tool_router,
 };
-use tokio::io::{stdin, stdout};
-use tracing::info;
+use tokio::{
+    io::{stdin, stdout},
+    sync::Mutex,
+};
+use tracing::{info, warn};
+
+use crate::session::{MissingValueError, Session, Status};
 
 #[derive(Clone)]
 pub struct KenchikuMcpServer {
     tool_router: ToolRouter<Self>,
+    session: Arc<tokio::sync::Mutex<Option<Session>>>,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -27,6 +34,8 @@ struct ConstructArgs {
     /// and what types they are etc.
     /// A simple dictionary of keys being the value names and values being their values.
     values: Option<HashMap<String, serde_json::Value>>,
+    /// Output/target path to construct to. Optional, defaults to working directory.
+    output: Option<String>,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -37,6 +46,8 @@ struct PatchArgs {
     /// and what types they are etc.
     /// A simple dictionary of keys being the value names and values being their values.
     values: Option<HashMap<String, serde_json::Value>>,
+    /// Output/target path to run patch in. Optional, defaults to working directory.
+    output: Option<String>,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -46,59 +57,255 @@ struct ShowArgs {
     name: String,
 }
 
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct ProvideValuesArgs {
+    /// Values to provide to the current session.
+    values: HashMap<String, serde_json::Value>,
+}
+
 #[tool_router(router = tool_router)]
 impl KenchikuMcpServer {
     pub fn new() -> Self {
         Self {
             tool_router: Self::tool_router(),
+            session: Arc::new(Mutex::new(None)),
         }
     }
 
-    #[tool(description = r#"
-        Scaffold a new project. Specify values using the `values` parameter (required).
+    #[tool(description = "
+        Scaffold a new project. Specify values using the `values` parameter.
         Use the `show` tool to find out what values the scaffold wants.
-        If the user wanted you to run this, ask them for any values you can't provide yourself.
-    "#)]
+        If you are unsure about some values, ask the user.
+    ")]
     pub async fn construct(
         &self,
         Parameters(ConstructArgs {
             scaffold_name,
             values,
+            output,
         }): Parameters<ConstructArgs>,
     ) -> String {
-        tokio::task::spawn_blocking(move || {
-            format!(
-                "Construct tool called with scaffold_name: {} and values: {:?}",
-                scaffold_name, values
-            )
+        let session = self.session.clone();
+
+        // Make sure only one session runs at a time
+        let mut session_guard = session.lock().await;
+        if session_guard.is_some() {
+            return "A session is already active. Please complete or cancel it first.".to_string();
+        }
+
+        let output_path = if let Some(o) = output {
+            PathBuf::from(o)
+        } else {
+            match std::env::current_dir() {
+                Ok(p) => p,
+                Err(e) => return format!("Failed to get current directory: {}", e),
+            }
+        };
+
+        let scaffold_name_clone = scaffold_name.clone();
+        let scaffold_result = tokio::task::spawn_blocking(move || {
+            discover_scaffold(scaffold_name_clone).map(Scaffold::load)
         })
         .await
-        .unwrap_or_else(|e| e.to_string())
+        .unwrap_or_else(|e| Some(Err(eyre::eyre!(e))));
+
+        if let Some(Ok(scaffold)) = scaffold_result {
+            let provided_values = values.unwrap_or_default();
+            let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
+            let (status_tx, mut status_rx) =
+                tokio::sync::mpsc::channel::<crate::session::Status>(1);
+
+            let scaffold_name_clone = scaffold_name.clone();
+            let output_path_clone = output_path.clone();
+            let provided_values_clone = provided_values.clone();
+
+            let mut join_handle = tokio::task::spawn_blocking(move || -> eyre::Result<String> {
+                let cmd_rx = std::sync::Mutex::new(cmd_rx);
+                let current_values = Arc::new(std::sync::Mutex::new(provided_values_clone));
+
+                let current_values_clone = current_values.clone();
+
+                let prompt_value = Arc::new(
+                    move |name: String,
+                          r#type: String,
+                          description: String,
+                          choices: Option<Vec<String>>,
+                          _default: Option<String>|
+                          -> eyre::Result<String> {
+                        loop {
+                            {
+                                let values = current_values_clone.lock().unwrap();
+                                if let Some(val) = values.get(&name) {
+                                    return Ok(val.to_string().trim_matches('"').to_string());
+                                }
+                            }
+
+                            // Request value from model
+                            let _ =
+                                status_tx.blocking_send(Status::MissingValue(MissingValueError {
+                                    name: name.clone(),
+                                    r#type: r#type.clone(),
+                                    description: description.clone(),
+                                    choices: choices.clone(),
+                                }));
+
+                            // Wait for new values from the model
+                            let rx = cmd_rx.lock().unwrap();
+                            if let Ok(new_values) = rx.recv() {
+                                let mut values = current_values_clone.lock().unwrap();
+                                values.extend(new_values);
+                            } else {
+                                return Err(eyre::eyre!("Session cancelled"));
+                            }
+                        }
+                    },
+                );
+
+                let mut temp_dir = tempfile::tempdir()?;
+
+                let context = Context {
+                    working_dir: temp_dir.path().to_path_buf(),
+                    scaffold_dir: scaffold.path.clone(),
+                    output: output_path_clone,
+                    values: current_values
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v.to_string().trim_matches('"').to_string()))
+                        .collect(),
+                    values_meta: scaffold.meta.values.clone(),
+                    prompt_value,
+                    ..Default::default()
+                };
+
+                scaffold.construct(context)?;
+                // only disable cleanup if we constructed successfully
+                temp_dir.disable_cleanup(true);
+                Ok(format!(
+                    "Scaffold '{}' constructed successfully.",
+                    scaffold_name_clone
+                ))
+            });
+            tokio::select! {
+                Some(crate::session::Status::MissingValue(missing)) = status_rx.recv() => {
+                    *session_guard = Some(Session {
+                        values: provided_values,
+                        missing_values: vec![missing.name.clone()],
+                        value_sender: cmd_tx,
+                        status_receiver: Some(status_rx),
+                        join_handle: Some(join_handle),
+                    });
+                    format!(
+                        "Missing value: {}. Description: {}. Type: {}. Please use `provide_values` to supply it.",
+                        missing.name, missing.description, missing.r#type
+                    )
+                }
+                result = &mut join_handle => {
+                    match result {
+                        Ok(Ok(msg)) => msg,
+                        // Makes it easier to distinguish lol
+                        Ok(Err(e)) => format!("Construction errored: {:?}", e),
+                        Err(e) => format!("Construction failed: {:?}", e),
+                    }
+                }
+            }
+        } else {
+            format!("Scaffold '{}' not found.", scaffold_name)
+        }
     }
 
-    #[tool(description = r#"
-        Patch an existing project. Specify values using the `values` parameter (required).
+    #[tool(description = "
+        Patch an existing project. Specify values using the `values` parameter.
         Use the `show` tool to find out what values the patch wants.
-        If the user wanted you to run this, ask them for any values you can't provide yourself.
-    "#)]
+        If you are unsure about some values, ask the user.
+    ")]
     pub async fn patch(
         &self,
-        Parameters(PatchArgs { name, values }): Parameters<PatchArgs>,
+        Parameters(PatchArgs {
+            name,
+            values,
+            output,
+        }): Parameters<PatchArgs>,
     ) -> String {
         tokio::task::spawn_blocking(move || {
             format!(
-                "Patch tool called with name: {} and values: {:?}",
-                name, values
+                "Patch tool called with name: {}, values: {:?}, output: {:?}",
+                name, values, output
             )
         })
         .await
         .unwrap_or_else(|e| e.to_string())
     }
 
-    #[tool(description = r#"
+    #[tool(description = "
+        Provide extra values for the current session. The `values` param is required!
+        Values are saved, so no need to repeat them across tool calls, you can just add one
+        value after another or multiple at once if you know all missing ones.
+    ")]
+    pub async fn provide_values(
+        &self,
+        Parameters(ProvideValuesArgs { values }): Parameters<ProvideValuesArgs>,
+    ) -> String {
+        let session = self.session.clone();
+
+        // Lock session and send values
+        let (status_rx, join_handle) = {
+            let mut session_guard = session.lock().await;
+            if let Some(session) = session_guard.as_mut() {
+                session.values.extend(values.clone());
+
+                // Send values to execution thread
+                if let Err(_) = session.value_sender.send(values) {
+                    return "Execution thread died, that's unfortunate.".to_string();
+                }
+
+                (session.status_receiver.take(), session.join_handle.take())
+            } else {
+                return "No active session.".to_string();
+            }
+        };
+
+        if let (Some(mut rx), Some(mut handle)) = (status_rx, join_handle) {
+            tokio::select! {
+                // A value is missing, provide it
+                Some(crate::session::Status::MissingValue(missing)) = rx.recv() => {
+                    let mut session_guard = session.lock().await;
+
+                    // Check if session still exists (might have been cancelled)
+                    if let Some(session) = session_guard.as_mut() {
+                        session.missing_values = vec![missing.name.clone()];
+                        session.status_receiver = Some(rx);
+                        session.join_handle = Some(handle);
+                        format!("Missing value: {}. Description: {}. Type: {}. Choices (if enum): {:?}
+                                 Please use `provide_values` to supply it.",
+                            missing.name, missing.description, missing.r#type, missing.choices,
+                        )
+                    } else {
+                        "Session was cancelled while processing.".to_string()
+                    }
+                }
+                result = &mut handle => {
+                    // Finished, maybe successful, maybe with error
+                    let mut session_guard = session.lock().await;
+                    *session_guard = None;
+
+                    match result {
+                        Ok(Ok(msg)) => msg,
+                        // Makes it easier to distinguish lol
+                        Ok(Err(e)) => format!("Construction errored: {:?}", e),
+                        Err(e) => format!("Construction failed: {:?}", e),
+                    }
+                }
+            }
+        } else {
+            "Session in invalid state (no status receiver or join handle).".to_string()
+        }
+    }
+
+    #[tool(description = "
         List all available scaffolds and patches. This only gives an overview,
         use the `show` tool to get details & values.
-    "#)]
+    ")]
     pub async fn list(&self) -> String {
         tokio::task::spawn_blocking(|| -> eyre::Result<String> {
             let found_scaffolds = find_all_scaffolds()
@@ -122,11 +329,11 @@ impl KenchikuMcpServer {
         .unwrap_or_else(|e| e.to_string())
     }
 
-    #[tool(description = r#"
+    #[tool(description = "
         Show details & values of a scaffold or patch.
         To get details of a patch, use '<scaffold>:<patch>' for the name.
         Always use this tool first, before constructing or patching, to see which values are required.
-    "#)]
+    ")]
     async fn show(&self, Parameters(ShowArgs { name }): Parameters<ShowArgs>) -> String {
         tokio::task::spawn_blocking(move || -> eyre::Result<String> {
             let asking_for_patch = name.contains(":");
@@ -157,6 +364,34 @@ impl KenchikuMcpServer {
         .await
         .unwrap_or_else(|e| Err(e.into()))
         .unwrap_or_else(|e| e.to_string())
+    }
+
+    #[tool(description = "Cancel the current session.")]
+    pub async fn cancel_session(&self) -> String {
+        let session = self.session.clone();
+        let mut session_guard = session.lock().await;
+        if let Some(mut session) = session_guard.take() {
+            let join_handle = session.join_handle.take();
+
+            drop(session);
+            drop(session_guard);
+
+            // Wait for the thread to finish
+            if let Some(handle) = join_handle {
+                match handle.await {
+                    Ok(Ok(_)) => info!("Session cancelled. Background task finished successfully"),
+                    Ok(Err(err)) => {
+                        // since cancelling means throwing an error, the lua execution will error
+                        // too
+                        info!(?err, "Session cancelled. Background task failed (expected)")
+                    }
+                    Err(err) => warn!(?err, "Session cancelled. Background task panicked"),
+                }
+            }
+            "Session cancelled.".to_string()
+        } else {
+            "No active session.".to_string()
+        }
     }
 }
 
