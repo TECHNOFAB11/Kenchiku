@@ -54,5 +54,15 @@ in {
         ];
       };
     };
+    cocogitto.config = {
+      tag_prefix = "v";
+      changelog = {
+        path = "CHANGELOG.md";
+        template = "remote";
+        remote = "gitlab.com";
+        repository = "kenchiku";
+        owner = "TECHNOFAB";
+      };
+    };
   };
 }
