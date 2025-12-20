@@ -27,6 +27,7 @@ in {
       pkgs.gcc
       pkgs.rust-analyzer
       pkgs.cargo-nextest
+      pkgs.cargo-edit
       pkgs.lua-language-server
       fenix.minimal.toolchain
       treefmtWrapper
@@ -56,6 +57,12 @@ in {
     };
     cocogitto.config = {
       tag_prefix = "v";
+      pre_bump_hooks = [
+        "cargo build --release"
+        "cargo set-version {{version}}"
+        "cargo check --release"
+        "git add :/Cargo.lock"
+      ];
       changelog = {
         path = "CHANGELOG.md";
         template = "remote";
