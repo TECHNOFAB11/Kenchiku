@@ -72,19 +72,22 @@ impl KenchikuMcpServer {
         }
     }
 
-    #[tool(description = "
-        Scaffold a new project. Specify values using the `values` parameter.
-        Use the `show` tool to find out what values the scaffold wants.
-        If you are unsure about some values, ask the user.
-    ")]
-    pub async fn construct(
+    async fn start_session<F>(
         &self,
-        Parameters(ConstructArgs {
-            scaffold_name,
-            values,
-            output,
-        }): Parameters<ConstructArgs>,
-    ) -> String {
+        scaffold_name: String,
+        values: Option<HashMap<String, serde_json::Value>>,
+        output: Option<String>,
+        setup_operation: F,
+    ) -> String
+    where
+        F: FnOnce(
+                Scaffold,
+            ) -> eyre::Result<(
+                HashMap<String, kenchiku_common::meta::ValueMeta>,
+                Box<dyn FnOnce(Context) -> eyre::Result<String> + Send>,
+            )> + Send
+            + 'static,
+    {
         let session = self.session.clone();
 
         // Make sure only one session runs at a time
@@ -116,15 +119,18 @@ impl KenchikuMcpServer {
                     .map(|(k, v)| (k, serde_json::Value::String(v)))
                     .chain(values.unwrap_or_default().into_iter())
                     .collect();
+
             let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
             let (status_tx, mut status_rx) =
                 tokio::sync::mpsc::channel::<crate::session::Status>(1);
 
-            let scaffold_name_clone = scaffold_name.clone();
             let output_path_clone = output_path.clone();
             let provided_values_clone = provided_values.clone();
 
             let mut join_handle = tokio::task::spawn_blocking(move || -> eyre::Result<String> {
+                let scaffold_path = scaffold.path.clone();
+                let (values_meta, operation) = setup_operation(scaffold)?;
+
                 let cmd_rx = std::sync::Mutex::new(cmd_rx);
                 let current_values = Arc::new(std::sync::Mutex::new(provided_values_clone));
 
@@ -170,7 +176,7 @@ impl KenchikuMcpServer {
 
                 let context = Context {
                     working_dir: temp_dir.path().to_path_buf(),
-                    scaffold_dir: scaffold.path.clone(),
+                    scaffold_dir: scaffold_path,
                     output: output_path_clone,
                     values: current_values
                         .lock()
@@ -178,18 +184,15 @@ impl KenchikuMcpServer {
                         .iter()
                         .map(|(k, v)| (k.clone(), v.to_string().trim_matches('"').to_string()))
                         .collect(),
-                    values_meta: scaffold.meta.values.clone(),
+                    values_meta,
                     prompt_value,
                     ..Default::default()
                 };
 
-                scaffold.construct(context)?;
+                let msg = operation(context)?;
                 // only disable cleanup if we constructed successfully
                 temp_dir.disable_cleanup(true);
-                Ok(format!(
-                    "Scaffold '{}' constructed successfully.",
-                    scaffold_name_clone
-                ))
+                Ok(msg)
             });
             tokio::select! {
                 Some(crate::session::Status::MissingValue(missing)) = status_rx.recv() => {
@@ -209,14 +212,42 @@ impl KenchikuMcpServer {
                     match result {
                         Ok(Ok(msg)) => msg,
                         // Makes it easier to distinguish lol
-                        Ok(Err(e)) => format!("Construction errored: {:?}", e),
-                        Err(e) => format!("Construction failed: {:?}", e),
+                        Ok(Err(e)) => format!("Operation errored: {:?}", e),
+                        Err(e) => format!("Operation failed: {:?}", e),
                     }
                 }
             }
         } else {
             format!("Scaffold '{}' not found.", scaffold_name)
         }
+    }
+
+    #[tool(description = "
+        Scaffold a new project. Specify values using the `values` parameter.
+        Use the `show` tool to find out what values the scaffold wants.
+        If you are unsure about some values, ask the user.
+    ")]
+    pub async fn construct(
+        &self,
+        Parameters(ConstructArgs {
+            scaffold_name,
+            values,
+            output,
+        }): Parameters<ConstructArgs>,
+    ) -> String {
+        let scaffold_name_clone = scaffold_name.clone();
+        self.start_session(scaffold_name, values, output, move |scaffold| {
+            let meta = scaffold.meta.values.clone();
+            let op = Box::new(move |ctx| {
+                scaffold.construct(ctx)?;
+                Ok(format!(
+                    "Scaffold '{}' constructed successfully.",
+                    scaffold_name_clone
+                ))
+            });
+            Ok((meta, op))
+        })
+        .await
     }
 
     #[tool(description = "
@@ -232,158 +263,36 @@ impl KenchikuMcpServer {
             output,
         }): Parameters<PatchArgs>,
     ) -> String {
-        let session = self.session.clone();
-
-        let mut session_guard = session.lock().await;
-        if session_guard.is_some() {
-            return "A session is already active. Please complete or cancel it first.".to_string();
-        }
-
         let (scaffold_name, patch_name) = match name.split_once(':') {
             Some((s, p)) => (s.to_string(), p.to_string()),
             None => return "Invalid patch name format. Use '<scaffold>:<patch>'.".to_string(),
         };
 
-        let output_path = if let Some(o) = output {
-            PathBuf::from(o)
-        } else {
-            match std::env::current_dir() {
-                Ok(p) => p,
-                Err(e) => return format!("Failed to get current directory: {}", e),
-            }
-        };
-
         let scaffold_name_clone = scaffold_name.clone();
-        let scaffold_result = tokio::task::spawn_blocking(move || {
-            discover_scaffold(scaffold_name_clone).map(Scaffold::load)
-        })
-        .await
-        .unwrap_or_else(|e| Some(Err(eyre::eyre!(e))));
+        let patch_name_clone = patch_name.clone();
 
-        if let Some(Ok(scaffold)) = scaffold_result {
-            let patch_meta = match scaffold.meta.patches.get(&patch_name) {
+        self.start_session(scaffold_name, values, output, move |scaffold| {
+            let patch_meta = match scaffold.meta.patches.get(&patch_name_clone) {
                 Some(meta) => meta,
                 None => {
-                    return format!(
+                    return Err(eyre::eyre!(
                         "Patch '{}' not found in scaffold '{}'.",
-                        patch_name, scaffold_name
-                    );
+                        patch_name_clone,
+                        scaffold_name_clone
+                    ));
                 }
             };
-
-            let provided_values: HashMap<String, serde_json::Value> =
-                kenchiku_common::get_env_values()
-                    .into_iter()
-                    .map(|(k, v)| (k, serde_json::Value::String(v)))
-                    .chain(values.unwrap_or_default().into_iter())
-                    .collect();
-
-            let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
-            let (status_tx, mut status_rx) =
-                tokio::sync::mpsc::channel::<crate::session::Status>(1);
-
-            let scaffold_name_clone = scaffold_name.clone();
-            let patch_name_clone = patch_name.clone();
-            let output_path_clone = output_path.clone();
-            let provided_values_clone = provided_values.clone();
-            let patch_meta_values = patch_meta.values.clone();
-
-            let mut join_handle = tokio::task::spawn_blocking(move || -> eyre::Result<String> {
-                let current_values =
-                    std::sync::Arc::new(std::sync::Mutex::new(provided_values_clone));
-                let status_tx = status_tx.clone();
-                let cmd_rx = std::sync::Mutex::new(cmd_rx);
-
-                let current_values_clone = current_values.clone();
-                let status_tx_clone = status_tx.clone();
-                let prompt_value = Arc::new(
-                    move |name: String,
-                          type_: String,
-                          description: String,
-                          choices: Option<Vec<String>>,
-                          _default: Option<String>|
-                          -> eyre::Result<String> {
-                        loop {
-                            {
-                                let values = current_values_clone.lock().unwrap();
-                                if let Some(val) = values.get(&name) {
-                                    return Ok(val.to_string().trim_matches('"').to_string());
-                                }
-                            }
-
-                            // Request value
-                            let _ = status_tx_clone.blocking_send(
-                                crate::session::Status::MissingValue(MissingValueError {
-                                    name: name.clone(),
-                                    r#type: type_.clone(),
-                                    description: description.clone(),
-                                    choices: choices.clone(),
-                                }),
-                            );
-
-                            // Wait for new values
-                            let rx = cmd_rx.lock().unwrap();
-                            if let Ok(new_values) = rx.recv() {
-                                let mut values = current_values_clone.lock().unwrap();
-                                values.extend(new_values);
-                            } else {
-                                return Err(eyre::eyre!("Session cancelled"));
-                            }
-                        }
-                    },
-                );
-
-                let mut temp_dir = tempfile::tempdir()?;
-
-                let context = Context {
-                    working_dir: temp_dir.path().to_path_buf(),
-                    output: output_path_clone,
-                    scaffold_dir: scaffold.path.clone(),
-                    values: current_values
-                        .lock()
-                        .unwrap()
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v.to_string().trim_matches('"').to_string()))
-                        .collect(),
-                    values_meta: patch_meta_values,
-                    prompt_value,
-                    ..Default::default()
-                };
-
-                scaffold.call_patch(&patch_name_clone, context)?;
-                // only disable cleanup if we constructed successfully
-                temp_dir.disable_cleanup(true);
+            let meta = patch_meta.values.clone();
+            let op = Box::new(move |ctx| {
+                scaffold.call_patch(&patch_name_clone, ctx)?;
                 Ok(format!(
                     "Patch '{}:{}' executed successfully.",
                     scaffold_name_clone, patch_name_clone
                 ))
             });
-
-            tokio::select! {
-                Some(crate::session::Status::MissingValue(missing)) = status_rx.recv() => {
-                    *session_guard = Some(Session {
-                        values: provided_values,
-                        missing_values: vec![missing.name.clone()],
-                        value_sender: cmd_tx,
-                        status_receiver: Some(status_rx),
-                        join_handle: Some(join_handle),
-                    });
-                    format!(
-                        "Missing value: {}. Description: {}. Type: {}. Please use `provide_values` to supply it.",
-                        missing.name, missing.description, missing.r#type
-                    )
-                }
-                result = &mut join_handle => {
-                    match result {
-                        Ok(Ok(msg)) => msg,
-                        Ok(Err(e)) => format!("{:?}", e),
-                        Err(e) => format!("{:?}", e),
-                    }
-                }
-            }
-        } else {
-            format!("Scaffold '{}' not found.", scaffold_name)
-        }
+            Ok((meta, op))
+        })
+        .await
     }
 
     #[tool(description = "
