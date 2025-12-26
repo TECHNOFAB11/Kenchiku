@@ -24,15 +24,18 @@ fs = nil
 exec = nil
 
 ---@class tmpl_global
----@field patch fun(content: string, pattern: string, replacement: string, opts: table?): string Patch a string, replacing the source with target.
 ---@field template fun(content: string, vars: table): string
 ---@field template_file fun(file: string, vars: table): string
 
 ---@type tmpl_global
 tmpl = nil
 
+---@class ReReplaceOpts
+---@field limit number Limit to replace, default is 0.
+---
 ---@class re_global
 ---@field match fun(content: string, pattern: string): table Regex matches a string, returning the captured groups.
+---@field replace fun(content: string, pattern: string, replacement: string, opts: ReReplaceOpts?): string Regex replace in a string.
 
 ---@type re_global
 re = nil
