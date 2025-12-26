@@ -6,6 +6,8 @@
     "enabled": false
   },
   "lockFileMaintenance": {
+    "branchTopic": "lock-file-maintenance-{{packageFile}}",
+    "commitMessageExtra": "({{packageFile}})",
     "enabled": true,
     "extends": [
       "schedule:monthly"

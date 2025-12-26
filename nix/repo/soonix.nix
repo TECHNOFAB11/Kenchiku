@@ -17,6 +17,8 @@ in
           lockFileMaintenance = {
             enabled = true;
             extends = ["schedule:monthly"];
+            branchTopic = "lock-file-maintenance-{{packageFile}}";
+            commitMessageExtra = "({{packageFile}})";
           };
           nix.enabled = true;
           gitlabci.enabled = false;
