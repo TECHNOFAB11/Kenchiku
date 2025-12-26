@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use eyre::{Result, eyre};
 use kenchiku_common::{Context, IntoLuaErrDebug};
 use mlua::{FromLua, Lua};
+use normalize_path::NormalizePath;
 use tracing::debug;
 
 pub struct LuaFS;
@@ -15,8 +16,8 @@ impl LuaFS {
         fs_table.set(
             "exists",
             lua.create_function(move |_, path: String| {
-                let user_path = validate_path(&working_dir, path);
-                Ok(!user_path.is_err() && user_path.unwrap().exists())
+                let user_path = normalize_path(&working_dir, path);
+                Ok(user_path.exists())
             })?,
         )?;
 
@@ -26,8 +27,8 @@ impl LuaFS {
             "read",
             lua.create_function(move |_, (path, opts): (String, LuaFsReadOpts)| {
                 let path = match opts.source.as_ref() {
-                    "workdir" => validate_path(&working_dir, path)?,
-                    "scaffold" => validate_path(&scaffold_dir, path)?,
+                    "workdir" => normalize_path(&working_dir, path),
+                    "scaffold" => normalize_path(&scaffold_dir, path),
                     _ => {
                         return Err(eyre!(
                             "Invalid read source, must be one of workdir,scaffold"
@@ -44,7 +45,7 @@ impl LuaFS {
         fs_table.set(
             "mkdir",
             lua.create_function(move |_, path: String| {
-                let user_path = validate_path(&working_dir, path)?;
+                let user_path = normalize_path(&working_dir, path);
                 Ok(std::fs::create_dir_all(&user_path)?)
             })?,
         )?;
@@ -53,7 +54,7 @@ impl LuaFS {
         fs_table.set(
             "write",
             lua.create_function(move |_, (path, content): (String, String)| {
-                let user_path = validate_path(&working_dir, path)?;
+                let user_path = normalize_path(&working_dir, path);
                 debug!(?user_path, "Writing to file");
                 Ok(std::fs::write(&user_path, content)?)
             })?,
@@ -94,37 +95,17 @@ impl FromLua for LuaFsReadOpts {
     }
 }
 
-pub(crate) fn validate_path(working_dir: &Path, path: String) -> mlua::Result<PathBuf> {
-    let specified_path = working_dir.join(&path);
-    debug!(path, ?specified_path, "Validating path");
-    let user_path = if specified_path.is_dir() {
-        specified_path.clone()
-    } else {
-        specified_path
-            .parent()
-            .ok_or(mlua::Error::external("nope"))?
-            .to_path_buf()
-    };
-    if !is_subpath(working_dir, &user_path)? {
-        return Err(mlua::Error::external(format!(
-            "scaffold is not allowed to access {}",
-            user_path.display()
-        )));
-    }
-    Ok(specified_path.to_path_buf())
-}
-
-fn is_subpath(base_path: &Path, user_path: &Path) -> Result<bool, std::io::Error> {
-    let base_path_canonicalized = base_path.canonicalize()?;
-    let user_path_canonicalized = user_path.canonicalize()?;
-
-    Ok(user_path_canonicalized.starts_with(base_path_canonicalized))
+pub(crate) fn normalize_path(working_dir: &Path, path: String) -> PathBuf {
+    let normalized_path = Path::new("./").join(&path).normalize();
+    let user_path = working_dir.join(&normalized_path);
+    debug!(path, ?normalized_path, ?user_path, "Normalized path");
+    user_path.to_path_buf()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, path::PathBuf};
+    use std::fs;
     use tempfile::tempdir;
 
     #[test]
@@ -150,22 +131,36 @@ mod tests {
         };
 
         // Exists test
-        execute_lua(&format!(
+        execute_lua(
             r#"
-                    local exists = fs.exists("{}")
+                    local exists = fs.exists("nonexistent.txt")
                     assert(not exists)
                 "#,
-            working_dir.join("nonexistent.txt").display()
-        ))?;
+        )?;
 
         // Mkdir test
-        execute_lua(&format!(
+        execute_lua(
             r#"
-                    fs.mkdir("{}")
+                fs.mkdir("new_dir")
                 "#,
-            working_dir.join("new_dir").display()
-        ))?;
+        )?;
         assert!(working_dir.join("new_dir").exists());
+
+        // Mkdir nested test
+        execute_lua(
+            r#"
+                fs.mkdir("some/dir/nested")
+            "#,
+        )?;
+        assert!(working_dir.join("some/dir/nested").exists());
+
+        // Mkdir escape test (gets normalized to nested)
+        execute_lua(
+            r#"
+                fs.mkdir("../../../nested")
+            "#,
+        )?;
+        assert!(working_dir.join("nested").exists());
 
         // Write test
         execute_lua(
@@ -205,32 +200,6 @@ mod tests {
     }
 
     #[test]
-    fn test_is_subpath() -> eyre::Result<()> {
-        let temp_dir = tempdir()?;
-        let base_path = temp_dir.path();
-
-        let sub_dir_path = base_path.join("subdir");
-        fs::create_dir(&sub_dir_path)?;
-
-        assert_eq!(is_subpath(base_path, &sub_dir_path)?, true);
-        assert_eq!(is_subpath(base_path, base_path)?, true);
-
-        let file_path = sub_dir_path.join("test_file.txt");
-        fs::write(&file_path, "test content")?;
-        assert_eq!(is_subpath(base_path, &file_path)?, true);
-
-        let outside_path = PathBuf::from("/tmp"); // Assuming /tmp exists
-        assert_eq!(is_subpath(base_path, &outside_path).unwrap_or(false), false);
-
-        let relative_path = PathBuf::from("subdir/../another_dir");
-        let absolute_relative_path = base_path.join(relative_path);
-        let another_dir_path = base_path.join("another_dir");
-        fs::create_dir(another_dir_path)?;
-        assert_eq!(is_subpath(base_path, &absolute_relative_path)?, true);
-        Ok(())
-    }
-
-    #[test]
     fn test_validate_path_valid() {
         let temp_dir = tempdir().expect("temp dir should be created");
         let working_dir = temp_dir.path();
@@ -238,7 +207,7 @@ mod tests {
         // Valid path within the working directory
         let path = "foo/bar".to_string();
         fs::create_dir_all(working_dir.join(&path)).expect("directory should be created");
-        let result = validate_path(working_dir, path.clone()).expect("path should be validated");
+        let result = normalize_path(working_dir, path.clone());
         assert_eq!(result, working_dir.join(path));
     }
 
@@ -249,7 +218,7 @@ mod tests {
 
         // Path equal to the working directory
         let path = ".".to_string();
-        let result = validate_path(working_dir, path).expect("path should be validated");
+        let result = normalize_path(working_dir, path);
         assert_eq!(result, working_dir.join(".").to_path_buf());
     }
 
@@ -258,10 +227,10 @@ mod tests {
         let temp_dir = tempdir().expect("temp dir should be created");
         let working_dir = temp_dir.path();
 
-        // Invalid path (outside the working directory)
+        // Invalid path (outside the working directory), gets normalized to foo
         let path = "../foo".to_string();
-        let result = validate_path(working_dir, path);
-        assert!(result.is_err());
+        let result = normalize_path(working_dir, path);
+        assert_eq!(result, working_dir.join("foo").to_path_buf())
     }
 
     #[test]
@@ -272,7 +241,7 @@ mod tests {
         // Path that is a file within the working directory
         let path = "foo.txt".to_string();
         fs::write(working_dir.join(&path), "test").expect("file to be created");
-        let result = validate_path(working_dir, path.clone()).expect("path should be validated");
+        let result = normalize_path(working_dir, path.clone());
         assert_eq!(result, working_dir.join(path));
     }
 }

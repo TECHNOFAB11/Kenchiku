@@ -5,7 +5,7 @@ use mlua::{ExternalResult, Lua};
 use regex::Regex;
 use std::fs;
 
-use crate::fs::validate_path;
+use crate::fs::normalize_path;
 
 pub struct LuaTmpl;
 
@@ -53,14 +53,7 @@ impl LuaTmpl {
                 env = minijinja_extras::register(env);
                 let context = context.clone();
                 env.set_loader(move |path| {
-                    let path =
-                        validate_path(&context.scaffold_dir, path.to_string()).map_err(|e| {
-                            minijinja::Error::new(
-                                minijinja::ErrorKind::InvalidOperation,
-                                "invalid template path",
-                            )
-                            .with_source(e)
-                        })?;
+                    let path = normalize_path(&context.scaffold_dir, path.to_string());
                     match fs::read_to_string(path) {
                         Ok(result) => Ok(Some(result)),
                         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
