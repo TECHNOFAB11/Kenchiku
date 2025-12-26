@@ -1,11 +1,11 @@
 function _kenchiku_cmd_0
     set 1 $argv[1]
-    kenchiku completion-data --patches
+    kenchiku completion-data --scaffolds
 end
 
 function _kenchiku_cmd_1
     set 1 $argv[1]
-    kenchiku completion-data --scaffolds
+    kenchiku completion-data --patches
 end
 
 function _kenchiku_cmd_2
@@ -82,37 +82,41 @@ function _kenchiku
         set COMP_CWORD (count $COMP_WORDS)
     end
 
-    set literals show list construct --output -y --force --set ... patch --output -y --set mcp
+    set literals -v show --json list --json construct --output -y --set --force patch mcp --help
 
     set descrs
-    set descr_literal_ids 
-    set descr_ids 
+    set descrs[1] "Increases verbosity/decreases log level. -v -> info, -vv -> debug, -vvv -> trace"
+    set descrs[2] "Shows details about a scaffold"
+    set descrs[3] "Output in JSON format"
+    set descrs[4] "Lists all found scaffolds"
+    set descrs[5] "Runs the specified scaffolds' construction"
+    set descrs[6] "Path to construct or patch in"
+    set descrs[7] "Increases auto-accept level for potentially dangerous actions"
+    set descrs[8] "Sets values before running (= separated, eg. 'a=b')"
+    set descrs[9] "Overwrite existing files in output dir"
+    set descrs[10] "Runs the specified patch"
+    set descrs[11] "Starts a MCP server"
+    set descrs[12] "Show help"
+    set descr_literal_ids 1 2 3 4 5 6 7 8 9 10 11 12 13
+    set descr_ids 1 2 3 4 3 5 6 7 8 9 10 11 12
     set regexes 
     set literal_transitions_inputs
     set nontail_transitions
-    set literal_transitions_inputs[1] "1 2 3 9 13"
-    set literal_transitions_tos[1] "2 3 4 5 3"
-    set literal_transitions_inputs[6] "10 11 12"
-    set literal_transitions_tos[6] "7 8 9"
-    set literal_transitions_inputs[8] 12
-    set literal_transitions_tos[8] 9
-    set literal_transitions_inputs[9] 8
-    set literal_transitions_tos[9] 8
-    set literal_transitions_inputs[10] "11 12"
-    set literal_transitions_tos[10] "8 9"
-    set literal_transitions_inputs[11] "10 11 6 12"
-    set literal_transitions_tos[11] "12 13 14 15"
-    set literal_transitions_inputs[13] "6 12"
-    set literal_transitions_tos[13] "14 15"
-    set literal_transitions_inputs[14] 12
-    set literal_transitions_tos[14] 15
-    set literal_transitions_inputs[15] 8
-    set literal_transitions_tos[15] 14
-    set literal_transitions_inputs[16] "11 6 12"
-    set literal_transitions_tos[16] "13 14 15"
+    set literal_transitions_inputs[1] "1 2 4 6 11 12 13"
+    set literal_transitions_tos[1] "2 3 4 5 6 7 7"
+    set literal_transitions_inputs[2] "1 2 4 6 11 12"
+    set literal_transitions_tos[2] "2 3 4 5 6 7"
+    set literal_transitions_inputs[4] 5
+    set literal_transitions_tos[4] 7
+    set literal_transitions_inputs[8] "7 8 9 10"
+    set literal_transitions_tos[8] "10 8 11 8"
+    set literal_transitions_inputs[9] "7 8 9"
+    set literal_transitions_tos[9] "12 9 13"
+    set literal_transitions_inputs[14] 5
+    set literal_transitions_tos[14] 7
 
-    set match_anything_transitions_from 5 2 7 4 12
-    set match_anything_transitions_to 6 3 10 11 16
+    set match_anything_transitions_from 5 6 10 11 13 12 3
+    set match_anything_transitions_to 8 9 8 8 9 9 14
 
     set state 1
     set word_index 2
@@ -142,13 +146,13 @@ function _kenchiku
         return 1
     end
 
-    set literal_froms_level_0 14 1 13 11 16 6 10 15 8 9
-    set literal_inputs_level_0 "12|1 2 3 9 13|6 12|10 11 6 12|11 6 12|10 11 12|11 12|8|12|8"
+    set literal_froms_level_0 2 4 14 1 8 9
+    set literal_inputs_level_0 "1 2 4 6 11 12|5|5|1 2 4 6 11 12 13|7 8 9 10|7 8 9"
     set nontail_command_froms_level_0 
     set nontail_commands_level_0 
     set nontail_regexes_level_0 
-    set command_froms_level_0 2 5 4 12 7
-    set commands_level_0 "1" "0" "1" "2" "2"
+    set command_froms_level_0 6 5 10 3 12
+    set commands_level_0 "1" "0" "2" "0" "2"
 
     for fallback_level in (seq 0 0)
         set candidates

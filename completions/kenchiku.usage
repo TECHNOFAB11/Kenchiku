@@ -1,10 +1,27 @@
-kenchiku show <scaffold> ;
-kenchiku list ;
-kenchiku construct <scaffold> [--output <PATH>] [-y] [--force] [--set <value>]... ;
-kenchiku patch <patch> [--output <PATH>] [-y] [--set <value>]... ;
-kenchiku mcp ;
+kenchiku [<option>]... (
+  show "Shows details about a scaffold"
+    <scaffold>
+    [--json "Output in JSON format"]
+| list "Lists all found scaffolds"
+    [--json "Output in JSON format"]
+| construct "Runs the specified scaffolds' construction"
+    <scaffold>
+    [<construct_patch_opts> | [--force "Overwrite existing files in output dir"]]...
+| patch "Runs the specified patch"
+    <patch>
+    [<construct_patch_opts>]...
+| mcp "Starts a MCP server"
+);
 
-<scaffold> ::= {{{ kenchiku completion-data --scaffolds }}} ;
-<patch> ::= {{{ kenchiku completion-data --patches }}} ;
-<value> ::= ... ;
+kenchiku --help "Show help";
 
+<construct_patch_opts> ::=
+  [--output <PATH>] "Path to construct or patch in"
+| [-y]... "Increases auto-accept level for potentially dangerous actions"
+| [--set <value>]... "Sets values before running (= separated, eg. 'a=b')";
+
+<option> ::=
+  [-v]... "Increases verbosity/decreases log level. -v -> info, -vv -> debug, -vvv -> trace";
+
+<scaffold> ::= {{{ kenchiku completion-data --scaffolds }}};
+<patch> ::= {{{ kenchiku completion-data --patches }}};

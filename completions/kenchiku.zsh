@@ -1,11 +1,11 @@
 #compdef kenchiku
 
 _kenchiku_cmd_0 () {
-    kenchiku completion-data --patches
+    kenchiku completion-data --scaffolds
 }
 
 _kenchiku_cmd_1 () {
-    kenchiku completion-data --scaffolds
+    kenchiku completion-data --patches
 }
 
 _kenchiku_cmd_2 () {
@@ -13,23 +13,31 @@ _kenchiku_cmd_2 () {
 }
 
 _kenchiku () {
-    declare -a literals=("show" "list" "construct" "--output" "-y" "--force" "--set" "..." "patch" "--output" "-y" "--set" "mcp")
+    declare -a literals=("-v" "show" "--json" "list" "--json" "construct" "--output" "-y" "--set" "--force" "patch" "mcp" "--help")
     declare -A descrs=()
-    declare -A descr_id_from_literal_id=()
+    descrs[0]="Increases verbosity/decreases log level. -v -> info, -vv -> debug, -vvv -> trace"
+    descrs[1]="Shows details about a scaffold"
+    descrs[2]="Output in JSON format"
+    descrs[3]="Lists all found scaffolds"
+    descrs[4]="Runs the specified scaffolds' construction"
+    descrs[5]="Path to construct or patch in"
+    descrs[6]="Increases auto-accept level for potentially dangerous actions"
+    descrs[7]="Sets values before running (= separated, eg. 'a=b')"
+    descrs[8]="Overwrite existing files in output dir"
+    descrs[9]="Runs the specified patch"
+    descrs[10]="Starts a MCP server"
+    descrs[11]="Show help"
+    declare -A descr_id_from_literal_id=([1]=0 [2]=1 [3]=2 [4]=3 [5]=2 [6]=4 [7]=5 [8]=6 [9]=7 [10]=8 [11]=9 [12]=10 [13]=11)
     declare -a regexes=()
     declare -A literal_transitions=()
-    literal_transitions[1]="([1]=2 [2]=3 [3]=4 [9]=5 [13]=3)"
-    literal_transitions[6]="([10]=7 [11]=8 [12]=9)"
-    literal_transitions[8]="([12]=9)"
-    literal_transitions[9]="([8]=8)"
-    literal_transitions[10]="([11]=8 [12]=9)"
-    literal_transitions[11]="([10]=12 [11]=13 [6]=14 [12]=15)"
-    literal_transitions[13]="([6]=14 [12]=15)"
-    literal_transitions[14]="([12]=15)"
-    literal_transitions[15]="([8]=14)"
-    literal_transitions[16]="([11]=13 [6]=14 [12]=15)"
+    literal_transitions[1]="([1]=2 [2]=3 [4]=4 [6]=5 [11]=6 [12]=7 [13]=7)"
+    literal_transitions[2]="([1]=2 [2]=3 [4]=4 [6]=5 [11]=6 [12]=7)"
+    literal_transitions[4]="([5]=7)"
+    literal_transitions[8]="([7]=10 [8]=8 [9]=11 [10]=8)"
+    literal_transitions[9]="([7]=12 [8]=9 [9]=13)"
+    literal_transitions[14]="([5]=7)"
     declare -A nontail_transitions=()
-    declare -A match_anything_transitions=([5]=6 [2]=3 [7]=10 [4]=11 [12]=16)
+    declare -A match_anything_transitions=([5]=8 [6]=9 [10]=8 [11]=8 [13]=9 [12]=9 [3]=14)
     declare -A subword_transitions=()
 
     declare state=1
@@ -84,12 +92,12 @@ _kenchiku () {
         return 1
     done
 
-    declare -A literal_transitions_level_0=([14]="12" [1]="1 2 3 9 13" [13]="6 12" [11]="10 11 6 12" [16]="11 6 12" [6]="10 11 12" [10]="11 12" [15]="8" [8]="12" [9]="8")
+    declare -A literal_transitions_level_0=([2]="1 2 4 6 11 12" [4]="5" [14]="5" [1]="1 2 4 6 11 12 13" [8]="7 8 9 10" [9]="7 8 9")
     declare -A subword_transitions_level_0=()
-    declare -A commands_level_0=([2]="1" [5]="0" [4]="1")
+    declare -A commands_level_0=([3]="0" [6]="1" [5]="0")
     declare -A nontail_commands_level_0=()
     declare -A nontail_regexes_level_0=()
-    declare -A specialized_commands_level_0=([12]="2" [7]="2")
+    declare -A specialized_commands_level_0=([12]="2" [10]="2")
 
     declare max_fallback_level=0
     for (( fallback_level=0; fallback_level <= max_fallback_level; fallback_level++ )); do

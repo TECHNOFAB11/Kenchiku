@@ -23,11 +23,11 @@ __complgen_match () {
 }
 
 _kenchiku_cmd_0 () {
-    kenchiku completion-data --patches
+    kenchiku completion-data --scaffolds
 }
 
 _kenchiku_cmd_1 () {
-    kenchiku completion-data --scaffolds
+    kenchiku completion-data --patches
 }
 
 _kenchiku_cmd_2 () {
@@ -43,21 +43,17 @@ _kenchiku () {
     local words cword
     _get_comp_words_by_ref -n "$COMP_WORDBREAKS" words cword
 
-    declare -a literals=(show list construct --output -y --force --set ... patch --output -y --set mcp)
+    declare -a literals=(-v show --json list --json construct --output -y --set --force patch mcp --help)
     declare -a regexes=()
     declare -A literal_transitions=()
     declare -A nontail_transitions=()
-    literal_transitions[0]="([0]=1 [1]=2 [2]=3 [8]=4 [12]=2)"
-    literal_transitions[5]="([9]=6 [10]=7 [11]=8)"
-    literal_transitions[7]="([11]=8)"
-    literal_transitions[8]="([7]=7)"
-    literal_transitions[9]="([10]=7 [11]=8)"
-    literal_transitions[10]="([9]=11 [10]=12 [5]=13 [11]=14)"
-    literal_transitions[12]="([5]=13 [11]=14)"
-    literal_transitions[13]="([11]=14)"
-    literal_transitions[14]="([7]=13)"
-    literal_transitions[15]="([10]=12 [5]=13 [11]=14)"
-    declare -A match_anything_transitions=([4]=5 [1]=2 [6]=9 [3]=10 [11]=15)
+    literal_transitions[0]="([0]=1 [1]=2 [3]=3 [5]=4 [10]=5 [11]=6 [12]=6)"
+    literal_transitions[1]="([0]=1 [1]=2 [3]=3 [5]=4 [10]=5 [11]=6)"
+    literal_transitions[3]="([4]=6)"
+    literal_transitions[7]="([6]=9 [7]=7 [8]=10 [9]=7)"
+    literal_transitions[8]="([6]=11 [7]=8 [8]=12)"
+    literal_transitions[13]="([4]=6)"
+    declare -A match_anything_transitions=([4]=7 [5]=8 [9]=7 [10]=7 [12]=8 [11]=8 [2]=13)
     declare -A subword_transitions
 
     local state=0
@@ -94,9 +90,9 @@ _kenchiku () {
         return 1
     done
 
-    declare -A literal_transitions_level_0=([13]="11" [0]="0 1 2 8 12" [12]="5 11" [10]="9 10 5 11" [15]="10 5 11" [5]="9 10 11" [9]="10 11" [14]="7" [7]="11" [8]="7")
+    declare -A literal_transitions_level_0=([1]="0 1 3 5 10 11" [3]="4" [13]="4" [0]="0 1 3 5 10 11 12" [7]="6 7 8 9" [8]="6 7 8")
     declare -A subword_transitions_level_0=()
-    declare -A commands_level_0=([1]="1" [4]="0" [3]="1" [11]="2" [6]="2")
+    declare -A commands_level_0=([5]="1" [4]="0" [9]="2" [2]="0" [11]="2")
     declare -A nontail_commands_level_0=()
     declare -A nontail_regexes_level_0=()
 
