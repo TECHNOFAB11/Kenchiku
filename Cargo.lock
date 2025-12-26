@@ -574,6 +574,7 @@ dependencies = [
  "kenchiku-common",
  "kenchiku-mcp",
  "kenchiku-scaffold",
+ "serde_json",
  "tempfile",
  "tracing",
  "tracing-subscriber",
@@ -587,6 +588,7 @@ dependencies = [
  "eyre",
  "minijinja",
  "mlua",
+ "serde",
 ]
 
 [[package]]
@@ -626,6 +628,7 @@ dependencies = [
  "kenchiku-common",
  "kenchiku-lua",
  "mlua",
+ "serde",
  "tempfile",
  "tracing",
 ]

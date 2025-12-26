@@ -1,6 +1,7 @@
 use crate::IntoLuaErrDebug;
 use eyre::eyre;
 use mlua::{FromLua, Lua};
+use serde::Serialize;
 use std::collections::HashMap;
 
 fn get_and_check<'lua, T>(
@@ -29,7 +30,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ValueMeta {
     pub r#type: String,
     pub description: String,
@@ -59,11 +60,12 @@ impl FromLua for ValueMeta {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct PatchMeta {
     /// Description of what the patch does.
     pub description: String,
     /// Function which executes the patch.
+    #[serde(skip)]
     pub run: mlua::Function,
     /// Values this patch requires.
     pub values: HashMap<String, ValueMeta>,
@@ -91,11 +93,12 @@ impl FromLua for PatchMeta {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ScaffoldMeta {
     /// Description of what the scaffold does.
     pub description: String,
     /// Function which executes the scaffold.
+    #[serde(skip)]
     pub construct: mlua::Function,
     /// Values this scaffold requires.
     pub values: HashMap<String, ValueMeta>,

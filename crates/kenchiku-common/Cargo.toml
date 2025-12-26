@@ -7,4 +7,5 @@ edition.workspace = true
 eyre.workspace = true
 mlua.workspace = true
 minijinja.workspace = true
+serde.workspace = true
 chrono = "0.4.42"

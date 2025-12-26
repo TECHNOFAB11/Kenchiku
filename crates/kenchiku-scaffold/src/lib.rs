@@ -7,6 +7,7 @@ use kenchiku_lua::{
     exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, tmpl::LuaTmpl, values::LuaValues,
 };
 use mlua::{FromLua, Lua};
+use serde::Serialize;
 use std::{fs::read_to_string, path::PathBuf};
 use tracing::{debug, info, warn};
 
@@ -16,9 +17,10 @@ pub mod discovery;
 mod requirer;
 mod utils;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Scaffold {
     #[allow(dead_code)]
+    #[serde(skip)]
     lua: Lua,
     pub name: String,
     pub path: PathBuf,

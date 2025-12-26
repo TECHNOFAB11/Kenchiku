@@ -29,9 +29,16 @@ pub enum Commands {
     Show {
         /// Scaffold to show information about, either name or path.
         scaffold: String,
+        /// Output in JSON format
+        #[arg(long)]
+        json: bool,
     },
     /// List all discovered scaffolds.
-    List,
+    List {
+        /// Output in JSON format
+        #[arg(long)]
+        json: bool,
+    },
     /// Construct a scaffold by running it's construct function
     Construct {
         /// Scaffold to construct, either name or path.
@@ -140,24 +147,33 @@ fn main() -> eyre::Result<()> {
     match cli.command {
         Commands::Show {
             scaffold: scaffold_name,
+            json,
         } => {
             let scaffold_path =
                 discover_scaffold(scaffold_name).ok_or(eyre!("Scaffold not found"))?;
             let scaffold = Scaffold::load(scaffold_path)?;
-            let mut stdout = std::io::stdout();
-            scaffold.print(&mut stdout, true)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&scaffold)?);
+            } else {
+                let mut stdout = std::io::stdout();
+                scaffold.print(&mut stdout, true)?;
+            }
         }
-        Commands::List => {
+        Commands::List { json } => {
             let found_scaffolds = find_all_scaffolds()
                 .iter()
                 .map(|path| Scaffold::load(path.to_path_buf()))
                 .collect::<eyre::Result<Vec<Scaffold>>>()?;
-            let mut stdout = std::io::stdout();
-            use std::io::Write;
-            writeln!(stdout, "Found scaffolds:\n======")?;
-            for scaffold in found_scaffolds {
-                scaffold.print(&mut stdout, false)?;
-                writeln!(stdout, "======")?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&found_scaffolds)?);
+            } else {
+                let mut stdout = std::io::stdout();
+                use std::io::Write;
+                writeln!(stdout, "Found scaffolds:\n======")?;
+                for scaffold in found_scaffolds {
+                    scaffold.print(&mut stdout, false)?;
+                    writeln!(stdout, "======")?;
+                }
             }
         }
         Commands::Construct {
