@@ -2,6 +2,25 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.2.0](https://gitlab.com/TECHNOFAB/kenchiku/compare/2abe09ec0f5978e96a5ea69943453dc071f7dcf5..v0.2.0) - 2025-12-26
+#### Features
+- (**lua**) add fs.copy function - ([d5e24f2](https://gitlab.com/TECHNOFAB/kenchiku/commit/d5e24f229880053cb884df30f1b7f88875dbb8c6)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+- load default values from env vars (with KENCHIKU_VAL_ prefix) - ([0fa5c30](https://gitlab.com/TECHNOFAB/kenchiku/commit/0fa5c309dd6637fbc247d8b9e95a72fd2794e272)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+- add --json param to list and show commands - ([0f8a841](https://gitlab.com/TECHNOFAB/kenchiku/commit/0f8a8414e7af8b78018efa49f1e06a25399b916a)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+#### Bug Fixes
+- (**lua**) normalize paths instead of validating them, always succeeding - ([4b12345](https://gitlab.com/TECHNOFAB/kenchiku/commit/4b12345732bbd2069fe4d6d7192463e63154d538)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+#### Refactoring
+- DRY mcp server a bit - ([30d5b03](https://gitlab.com/TECHNOFAB/kenchiku/commit/30d5b033df1352e6b4381c9b65acb50ae4b45a59)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+#### Miscellaneous Chores
+- (**cocogitto**) fix author linking in changelog - ([2abe09e](https://gitlab.com/TECHNOFAB/kenchiku/commit/2abe09ec0f5978e96a5ea69943453dc071f7dcf5)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+- (**deps**) update rust crate tempfile to v3.24.0 - ([f065be7](https://gitlab.com/TECHNOFAB/kenchiku/commit/f065be741bcd15fed79cbe8750646f926b31ddda)) - Renovate Bot
+- (**deps**) update rust crate serde_json to v1.0.147 - ([4759663](https://gitlab.com/TECHNOFAB/kenchiku/commit/4759663924ecd526e95580d7bf0d4425c3259f6a)) - Renovate Bot
+- (**deps**) update rust crate serde_json to v1.0.146 - ([43416a3](https://gitlab.com/TECHNOFAB/kenchiku/commit/43416a31c928f5757b2249bf19f44447d21a9ead)) - Renovate Bot
+- improve shell completions a bit - ([570bc91](https://gitlab.com/TECHNOFAB/kenchiku/commit/570bc91d5463320d1af77c1f8416f8dd088ef1bf)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+- add shell completions - ([6766560](https://gitlab.com/TECHNOFAB/kenchiku/commit/676656050fed363e11739f5aa3403530a6a3aea9)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)
+
+- - -
+
 ## [v0.1.0](https://gitlab.com/TECHNOFAB/kenchiku/compare/d0200014df74f03038b0e2f3be3b13608f8b1db2..v0.1.0) - 2025-12-20
 #### Features
 - (**cli**) add subcommands like construct and patch - ([44d2f18](https://gitlab.com/TECHNOFAB/kenchiku/commit/44d2f18425f79a25020ab727902565abe6f5bbf5)) - [@TECHNOFAB](https://gitlab.com/TECHNOFAB)

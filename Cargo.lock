@@ -566,7 +566,7 @@ dependencies = [
 
 [[package]]
 name = "kenchiku-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "eyre",
@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "kenchiku-common"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "eyre",
@@ -593,7 +593,7 @@ dependencies = [
 
 [[package]]
 name = "kenchiku-lua"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "eyre",
  "kenchiku-common",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "kenchiku-mcp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "eyre",
  "kenchiku-common",
@@ -623,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "kenchiku-scaffold"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "eyre",
  "kenchiku-common",
