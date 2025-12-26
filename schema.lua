@@ -31,6 +31,12 @@ exec = nil
 ---@type tmpl_global
 tmpl = nil
 
+---@class re_global
+---@field match fun(content: string, pattern: string): table Regex matches a string, returning the captured groups.
+
+---@type re_global
+re = nil
+
 ---@class values_global
 ---@field get fun(id: string): any Get a value, prompting the user if it isn't set.
 

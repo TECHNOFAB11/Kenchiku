@@ -4,7 +4,8 @@ use kenchiku_common::{
     meta::{ScaffoldMeta, ValueMeta},
 };
 use kenchiku_lua::{
-    exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, tmpl::LuaTmpl, values::LuaValues,
+    exec::LuaExec, fs::LuaFS, json::LuaJson, log::LuaLog, re::LuaRe, tmpl::LuaTmpl,
+    values::LuaValues,
 };
 use mlua::{FromLua, Lua};
 use serde::Serialize;
@@ -76,7 +77,8 @@ impl Scaffold {
         LuaExec::register(&self.lua, context.clone())?;
         LuaTmpl::register(&self.lua, context.clone())?;
         LuaJson::register(&self.lua, context.clone())?;
-        LuaValues::register(&self.lua, context)?;
+        LuaValues::register(&self.lua, context.clone())?;
+        LuaRe::register(&self.lua, context)?;
         Ok(())
     }
 
