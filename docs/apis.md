@@ -48,6 +48,16 @@ Creates all directories up to and including `path`.
 fs.mkdir("example/directory/here")
 ```
 
+### `fs.copy(from, to)`
+
+Copies file from scaffold dir to workdir.
+
+**Example**
+
+```lua
+fs.copy("a.txt", "b.txt")
+```
+
 ### `fs.read(path, opts?)`
 
 Reads the content of a file at `path`. Use `opts` to specify whether the file should
