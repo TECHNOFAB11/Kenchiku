@@ -60,6 +60,18 @@ impl LuaFS {
             })?,
         )?;
 
+        let working_dir = context.working_dir.clone();
+        let scaffold_dir = context.scaffold_dir.clone();
+        fs_table.set(
+            "copy",
+            lua.create_function(move |_, (source, destination): (String, String)| {
+                let source_path = normalize_path(&scaffold_dir, source);
+                let dest_path = normalize_path(&working_dir, destination);
+                debug!(?source_path, ?dest_path, "Copying file");
+                Ok(std::fs::copy(&source_path, &dest_path)?)
+            })?,
+        )?;
+
         lua.globals().set("fs", fs_table)?;
 
         Ok(())
@@ -194,6 +206,15 @@ mod tests {
             r#"
                 local exists = fs.exists("test.txt")
                 assert(exists)
+            "#,
+        )?;
+
+        // Copy test
+        execute_lua(
+            r#"
+                fs.copy("example.txt", "copied.txt")
+                local content = fs.read("copied.txt", { source = "workdir" })
+                assert(content == "hello world")
             "#,
         )?;
         Ok(())
