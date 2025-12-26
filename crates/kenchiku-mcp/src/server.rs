@@ -110,7 +110,12 @@ impl KenchikuMcpServer {
         .unwrap_or_else(|e| Some(Err(eyre::eyre!(e))));
 
         if let Some(Ok(scaffold)) = scaffold_result {
-            let provided_values = values.unwrap_or_default();
+            let provided_values: HashMap<String, serde_json::Value> =
+                kenchiku_common::get_env_values()
+                    .into_iter()
+                    .map(|(k, v)| (k, serde_json::Value::String(v)))
+                    .chain(values.unwrap_or_default().into_iter())
+                    .collect();
             let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
             let (status_tx, mut status_rx) =
                 tokio::sync::mpsc::channel::<crate::session::Status>(1);
@@ -266,7 +271,12 @@ impl KenchikuMcpServer {
                 }
             };
 
-            let provided_values = values.unwrap_or_default();
+            let provided_values: HashMap<String, serde_json::Value> =
+                kenchiku_common::get_env_values()
+                    .into_iter()
+                    .map(|(k, v)| (k, serde_json::Value::String(v)))
+                    .chain(values.unwrap_or_default().into_iter())
+                    .collect();
 
             let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<HashMap<String, serde_json::Value>>();
             let (status_tx, mut status_rx) =

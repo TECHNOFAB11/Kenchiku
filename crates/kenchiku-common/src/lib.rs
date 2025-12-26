@@ -47,3 +47,35 @@ impl<T> IntoLuaErrDebug<T> for eyre::Result<T> {
         self.map_err(|e| mlua::Error::external(format!("{:?}", e)))
     }
 }
+
+pub fn get_env_values() -> HashMap<String, String> {
+    std::env::vars()
+        .filter_map(|(k, v)| {
+            if let Some(name) = k.strip_prefix("KENCHIKU_VAL_") {
+                Some((name.to_lowercase(), v))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_env_values() {
+        let key = "KENCHIKU_VAL_TEST_VAR_UNIQUE_123";
+        std::env::set_var(key, "test_value");
+
+        let values = get_env_values();
+        // Should be lowercased (lets pretend val keys are always lowercase :D)
+        assert_eq!(
+            values.get("test_var_unique_123"),
+            Some(&"test_value".to_string())
+        );
+
+        std::env::remove_var(key);
+    }
+}

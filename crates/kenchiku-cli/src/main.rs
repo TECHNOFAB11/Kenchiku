@@ -200,14 +200,19 @@ fn main() -> eyre::Result<()> {
                 }),
                 allow_overwrite: force,
                 values_meta: scaffold.meta.values.clone(),
-                values: values
-                    .iter()
-                    .map(|val| {
-                        val.split_once("=")
-                            .map(|vals| (vals.0.to_string(), vals.1.to_string()))
-                            .ok_or_else(|| eyre!("Invalid value format: {}", val))
-                    })
-                    .collect::<Result<HashMap<String, String>, _>>()?,
+                values: kenchiku_common::get_env_values()
+                    .into_iter()
+                    .chain(
+                        values
+                            .iter()
+                            .map(|val| {
+                                val.split_once("=")
+                                    .map(|vals| (vals.0.to_string(), vals.1.to_string()))
+                                    .ok_or_else(|| eyre!("Invalid value format: {}", val))
+                            })
+                            .collect::<Result<HashMap<String, String>, _>>()?,
+                    )
+                    .collect(),
                 prompt_value,
             };
             scaffold.construct(context)?;
@@ -248,14 +253,19 @@ fn main() -> eyre::Result<()> {
                     .expect("patch to exist here")
                     .values
                     .clone(),
-                values: values
-                    .iter()
-                    .map(|val| {
-                        val.split_once("=")
-                            .map(|vals| (vals.0.to_string(), vals.1.to_string()))
-                            .ok_or_else(|| eyre!("Invalid value format: {}", val))
-                    })
-                    .collect::<Result<HashMap<String, String>, _>>()?,
+                values: kenchiku_common::get_env_values()
+                    .into_iter()
+                    .chain(
+                        values
+                            .iter()
+                            .map(|val| {
+                                val.split_once("=")
+                                    .map(|vals| (vals.0.to_string(), vals.1.to_string()))
+                                    .ok_or_else(|| eyre!("Invalid value format: {}", val))
+                            })
+                            .collect::<Result<HashMap<String, String>, _>>()?,
+                    )
+                    .collect(),
                 prompt_value,
                 ..Default::default()
             };
