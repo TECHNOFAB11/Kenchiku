@@ -70,19 +70,33 @@ Writes a file to `path` containing `content`.
 fs.write("example.txt", "hello world!")
 ```
 
-## `tmpl` Module
+## `re` Module
 
-### `tmpl.patch(content, pattern, replacement)`
+### `re.replace(content, pattern, replacement, opts)`
 
-Patch the content by replacing pattern with the replacement.
+Replace pattern with the replacement in content.
 Basically a regex replace, so `pattern` can contain capture groups and
 `replacement` can refer to them using `$1` for example.
+Opts can specify a table with `limit` limiting the amount of replaces.
 
 **Example**
 
 ```lua
-tmpl.patch("hello world", "w+", "konnichiwa")
+re.replace("hello world", "w+", "konnichiwa", { limit = 1, })
 ```
+
+### `re.match(content, pattern)`
+
+Regex match the pattern in content.
+Returns a table of capture groups (named and unnamed).
+
+**Example**
+
+```lua
+re.match("hello world", "(hello) world")
+```
+
+## `tmpl` Module
 
 ### `tmpl.template(template_string, vars)`
 
