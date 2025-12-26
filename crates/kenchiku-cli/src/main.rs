@@ -64,6 +64,15 @@ pub enum Commands {
     },
     /// Starts the MCP server (stdio)
     Mcp,
+    /// Output data for shell completions
+    CompletionData {
+        /// Output list of scaffold names & descriptions
+        #[arg(long)]
+        scaffolds: bool,
+        /// Output list of patches in scaffold:patch format & descriptions
+        #[arg(long)]
+        patches: bool,
+    },
 }
 
 fn main() -> eyre::Result<()> {
@@ -238,6 +247,26 @@ fn main() -> eyre::Result<()> {
         }
         Commands::Mcp => {
             kenchiku_mcp::server::run_blocking()?;
+        }
+        Commands::CompletionData { scaffolds, patches } => {
+            if scaffolds {
+                let found_scaffolds = find_all_scaffolds();
+                for path in found_scaffolds {
+                    if let Ok(scaffold) = Scaffold::load(path) {
+                        println!("{}\t{}", scaffold.name, scaffold.meta.description);
+                    }
+                }
+            }
+            if patches {
+                let found_scaffolds = find_all_scaffolds();
+                for path in found_scaffolds {
+                    if let Ok(scaffold) = Scaffold::load(path) {
+                        for patch in scaffold.meta.patches {
+                            println!("{}:{}\t{}", scaffold.name, patch.0, patch.1.description);
+                        }
+                    }
+                }
+            }
         }
     }
 

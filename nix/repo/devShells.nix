@@ -32,6 +32,7 @@ in {
       pkgs.cargo-nextest
       pkgs.cargo-edit
       pkgs.lua-language-server
+      pkgs.complgen
       fenix.minimal.toolchain
       treefmtWrapper
     ];
@@ -39,6 +40,18 @@ in {
       PATH.prefix = "$REN_ROOT/target/debug";
       KENCHIKU_PATH.eval = "$REN_ROOT/scaffolds";
       LD_LIBRARY_PATH.value = "${pkgs.stdenv.cc.cc.lib}/lib";
+    };
+    task.",".tasks = {
+      "update-completions" = {
+        dir = "completions";
+        cmd =
+          # sh
+          ''
+            complgen --bash kenchiku.bash kenchiku.usage
+            complgen --zsh kenchiku.zsh kenchiku.usage
+            complgen --fish kenchiku.fish kenchiku.usage
+          '';
+      };
     };
     lefthook.config = {
       "pre-commit" = {

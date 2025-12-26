@@ -1,0 +1,10 @@
+kenchiku show <scaffold> ;
+kenchiku list ;
+kenchiku construct <scaffold> [--output <PATH>] [-y] [--force] [--set <value>]... ;
+kenchiku patch <patch> [--output <PATH>] [-y] [--set <value>]... ;
+kenchiku mcp ;
+
+<scaffold> ::= {{{ kenchiku completion-data --scaffolds }}} ;
+<patch> ::= {{{ kenchiku completion-data --patches }}} ;
+<value> ::= ... ;
+
