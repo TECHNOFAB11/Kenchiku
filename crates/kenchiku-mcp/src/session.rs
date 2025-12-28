@@ -21,11 +21,16 @@ pub struct MissingValueError {
     pub r#type: String,
     pub description: String,
     pub choices: Option<Vec<String>>,
+    pub error: Option<String>,
 }
 
 impl std::fmt::Display for MissingValueError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Missing value: {}", self.name)
+        if let Some(err) = &self.error {
+            write!(f, "Missing value: {} (Error: {})", self.name, err)
+        } else {
+            write!(f, "Missing value: {}", self.name)
+        }
     }
 }
 

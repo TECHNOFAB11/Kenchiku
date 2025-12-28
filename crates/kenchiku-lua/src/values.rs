@@ -1,6 +1,7 @@
 use eyre::{Context as _, ContextCompat, Result, eyre};
 use kenchiku_common::{Context, IntoLuaErrDebug};
 use mlua::{IntoLua, Lua};
+use std::sync::Arc;
 use tracing::{debug, trace};
 
 pub struct LuaValues;
@@ -19,19 +20,63 @@ impl LuaValues {
                     return Err(eyre!("No value named {} defined", id)).into_lua_err_debug();
                 }
                 let meta = meta.unwrap();
+
+                let run_validation = |val: &str| -> Result<(), String> {
+                    if let Some(validate) = &meta.validate {
+                        let res: mlua::Value =
+                            validate.call(val.to_string()).map_err(|e| e.to_string())?;
+                        match res {
+                            mlua::Value::Boolean(true) => Ok(()),
+                            mlua::Value::Boolean(false) => {
+                                Err("validate function rejected value".to_string())
+                            }
+                            mlua::Value::String(s) => Err(s.to_string_lossy()),
+                            _ => Err("Invalid return value from validate fn".to_string()),
+                        }
+                    } else {
+                        Ok(())
+                    }
+                };
+
                 // 1. if value was already set
                 if val.is_some() {
                     trace!(id, "Value was already set");
+                    let val_str = val.unwrap();
+                    if let Err(e) = run_validation(&val_str) {
+                        return Err(eyre!("Value '{}' for '{}' is invalid: {}", val_str, id, e))
+                            .into_lua_err_debug();
+                    }
                     return string_to_value_of_type(
                         &lua,
                         meta.r#type.clone(),
-                        val.unwrap(),
+                        val_str,
                         meta.choices.clone(),
                         id,
                     );
                 }
                 // 2. if value is unset, ask the user
                 trace!(id, "Asking user for value...");
+
+                let validator: Option<Arc<dyn Fn(&str) -> Result<(), String> + Send + Sync>> =
+                    if meta.validate.is_some() {
+                        let validate = meta.validate.clone().unwrap();
+                        Some(Arc::new(move |input: &str| {
+                            let res: mlua::Value = validate
+                                .call(input.to_string())
+                                .map_err(|e| e.to_string())?;
+                            match res {
+                                mlua::Value::Boolean(true) => Ok(()),
+                                mlua::Value::String(s) => Err(s
+                                    .to_str()
+                                    .map(|s| s.to_string())
+                                    .unwrap_or_else(|_| "Invalid value".to_string())),
+                                _ => Err("Invalid value".to_string()),
+                            }
+                        }))
+                    } else {
+                        None
+                    };
+
                 let answer = (context.prompt_value)(
                     id.clone(),
                     meta.r#type.clone(),
@@ -41,8 +86,10 @@ impl LuaValues {
                         v.to_string()
                             .expect("lua default should be serializable to string")
                     }),
+                    validator,
                 )
                 .into_lua_err_debug()?;
+
                 return string_to_value_of_type(
                     &lua,
                     meta.r#type.clone(),
@@ -104,7 +151,7 @@ fn string_to_value_of_type(
 mod tests {
     use super::*;
     use kenchiku_common::{Context, meta::ValueMeta};
-    use mlua::Lua;
+    use mlua::{FromLua as _, Lua};
     use std::{collections::HashMap, sync::Arc};
 
     fn create_test_context(
@@ -115,7 +162,7 @@ mod tests {
         Context {
             values,
             values_meta,
-            prompt_value: Arc::new(move |_name, _type, _desc, _choices, _default| {
+            prompt_value: Arc::new(move |_name, _type, _desc, _choices, _default, _validator| {
                 Ok(prompt_response.clone().unwrap_or_default())
             }),
             ..Default::default()
@@ -152,6 +199,7 @@ mod tests {
                 description: "User name".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -183,6 +231,7 @@ mod tests {
                 description: "User age".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -214,6 +263,7 @@ mod tests {
                 description: "Feature flag".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -249,6 +299,7 @@ mod tests {
                     "green".to_string(),
                     "blue".to_string(),
                 ]),
+                validate: None,
             },
         );
 
@@ -284,6 +335,7 @@ mod tests {
                     "green".to_string(),
                     "blue".to_string(),
                 ]),
+                validate: None,
             },
         );
 
@@ -325,6 +377,7 @@ mod tests {
                     "green".to_string(),
                     "blue".to_string(),
                 ]),
+                validate: None,
             },
         );
 
@@ -355,7 +408,7 @@ mod tests {
         let context = Context {
             values,
             values_meta,
-            prompt_value: Arc::new(|_name, _type, _desc, _choices, _default| {
+            prompt_value: Arc::new(|_name, _type, _desc, _choices, _default, _validator| {
                 Ok("PromptedValue".to_string())
             }),
             ..Default::default()
@@ -415,6 +468,7 @@ mod tests {
                 description: "User age".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -450,6 +504,7 @@ mod tests {
                 description: "Feature flag".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -485,6 +540,7 @@ mod tests {
                 description: "Some choice".to_string(),
                 default: None,
                 choices: None, // No choices defined for enum
+                validate: None,
             },
         );
 
@@ -520,6 +576,7 @@ mod tests {
                 description: "Custom type".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -555,6 +612,7 @@ mod tests {
                 description: "User name".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
         values_meta.insert(
@@ -564,6 +622,7 @@ mod tests {
                 description: "User age".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
         values_meta.insert(
@@ -573,6 +632,7 @@ mod tests {
                 description: "Active status".to_string(),
                 default: None,
                 choices: None,
+                validate: None,
             },
         );
 
@@ -612,6 +672,111 @@ mod tests {
 
         assert!(get_func.call::<mlua::Value>("test").is_err());
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_validation_success_bool() -> eyre::Result<()> {
+        let lua = Lua::new();
+        let mut values = HashMap::new();
+        values.insert("age".to_string(), "25".to_string());
+
+        let meta_table: mlua::Table = lua
+            .load(
+                r#"
+            {
+                type = "number",
+                description = "User age",
+                validate = function(v) return true end
+            }
+        "#,
+            )
+            .eval()?;
+        let meta = ValueMeta::from_lua(mlua::Value::Table(meta_table), &lua)?;
+
+        let mut values_meta = HashMap::new();
+        values_meta.insert("age".to_string(), meta);
+
+        let context = create_test_context(values, values_meta, None);
+        execute_lua_with_context(
+            &lua,
+            r#"
+                local age = values.get("age")
+                assert(age == 25)
+            "#,
+            context,
+        )
+    }
+
+    #[test]
+    fn test_validation_failure_bool() -> eyre::Result<()> {
+        let lua = Lua::new();
+        let mut values = HashMap::new();
+        values.insert("age".to_string(), "25".to_string());
+
+        let meta_table: mlua::Table = lua
+            .load(
+                r#"
+            {
+                type = "number",
+                description = "User age",
+                validate = function(v) return false end
+            }
+        "#,
+            )
+            .eval()?;
+        let meta = ValueMeta::from_lua(mlua::Value::Table(meta_table), &lua)?;
+
+        let mut values_meta = HashMap::new();
+        values_meta.insert("age".to_string(), meta);
+
+        let context = create_test_context(values, values_meta, None);
+        let result = execute_lua_with_context(
+            &lua,
+            r#"
+                values.get("age")
+            "#,
+            context,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("rejected value"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_validation_failure_string() -> eyre::Result<()> {
+        let lua = Lua::new();
+        let mut values = HashMap::new();
+        values.insert("age".to_string(), "25".to_string());
+
+        let meta_table: mlua::Table = lua
+            .load(
+                r#"
+            {
+                type = "number",
+                description = "User age",
+                validate = function(v) return "Custom error" end
+            }
+        "#,
+            )
+            .eval()?;
+        let meta = ValueMeta::from_lua(mlua::Value::Table(meta_table), &lua)?;
+
+        let mut values_meta = HashMap::new();
+        values_meta.insert("age".to_string(), meta);
+
+        let context = create_test_context(values, values_meta, None);
+        let result = execute_lua_with_context(
+            &lua,
+            r#"
+                values.get("age")
+            "#,
+            context,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Custom error"));
         Ok(())
     }
 }

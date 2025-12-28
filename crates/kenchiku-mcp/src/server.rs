@@ -141,13 +141,24 @@ impl KenchikuMcpServer {
                           r#type: String,
                           description: String,
                           choices: Option<Vec<String>>,
-                          _default: Option<String>|
+                          _default: Option<String>,
+                          validator: Option<
+                        Arc<dyn Fn(&str) -> Result<(), String> + Send + Sync>,
+                    >|
                           -> eyre::Result<String> {
                         loop {
+                            let error_msg = &mut None;
                             {
-                                let values = current_values_clone.lock().unwrap();
+                                let mut values = current_values_clone.lock().unwrap();
                                 if let Some(val) = values.get(&name) {
-                                    return Ok(val.to_string().trim_matches('"').to_string());
+                                    let val_str = val.to_string().trim_matches('"').to_string();
+                                    if let Some(validator) = &validator {
+                                        if let Err(e) = validator(&val_str) {
+                                            *error_msg = Some(e.to_string());
+                                            values.remove(&name);
+                                        }
+                                    }
+                                    return Ok(val_str);
                                 }
                             }
 
@@ -158,6 +169,7 @@ impl KenchikuMcpServer {
                                     r#type: r#type.clone(),
                                     description: description.clone(),
                                     choices: choices.clone(),
+                                    error: error_msg.clone(),
                                 }));
 
                             // Wait for new values from the model

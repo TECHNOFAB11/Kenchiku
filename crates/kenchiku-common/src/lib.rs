@@ -16,7 +16,14 @@ pub struct Context {
     pub values_meta: HashMap<String, ValueMeta>,
     pub values: HashMap<String, String>,
     pub prompt_value: Arc<
-        dyn Fn(String, String, String, Option<Vec<String>>, Option<String>) -> eyre::Result<String>
+        dyn Fn(
+                String,
+                String,
+                String,
+                Option<Vec<String>>,
+                Option<String>,
+                Option<Arc<dyn Fn(&str) -> Result<(), String> + Send + Sync>>,
+            ) -> eyre::Result<String>
             + Send
             + Sync,
     >,
@@ -33,7 +40,7 @@ impl Default for Context {
             allow_overwrite: false,
             values_meta: Default::default(),
             values: Default::default(),
-            prompt_value: Arc::new(|_, _, _, _, _| Ok("".to_string())),
+            prompt_value: Arc::new(|_, _, _, _, _, _| Ok("".to_string())),
         }
     }
 }

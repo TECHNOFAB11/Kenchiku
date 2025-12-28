@@ -107,7 +107,8 @@ fn main() -> eyre::Result<()> {
          value_type: String,
          description: String,
          choices: Option<Vec<String>>,
-         default: Option<String>|
+         default: Option<String>,
+         validator: Option<Arc<dyn Fn(&str) -> Result<(), String> + Send + Sync + 'static>>|
          -> eyre::Result<String> {
             Ok(match value_type.as_str() {
                 "enum" => {
@@ -137,6 +138,15 @@ fn main() -> eyre::Result<()> {
                     let mut text = inquire::Text::new(&description);
                     if let Some(def) = &default {
                         text = text.with_default(&def).with_placeholder(&def);
+                    }
+
+                    if let Some(validator) = validator {
+                        text = text.with_validator(move |input: &str| match validator(input) {
+                            Ok(_) => Ok(inquire::validator::Validation::Valid),
+                            Err(e) => Ok(inquire::validator::Validation::Invalid(
+                                inquire::validator::ErrorMessage::Custom(e.to_string()),
+                            )),
+                        });
                     }
                     text.prompt()?
                 }

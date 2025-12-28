@@ -54,6 +54,7 @@ function warn(msg) end
 ---@field type "string"|"number"|"enum"|"bool" Type of the value.
 ---@field default? string|number|boolean|nil Default value.
 ---@field choices? table<string> Enum values to select from.
+---@field validate? fun(val: any): string|boolean Validation for user input. Return string for error message, otherwise bool.
 
 ---@class Patch
 ---@field description string Description of what the patch does.

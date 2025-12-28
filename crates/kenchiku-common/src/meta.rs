@@ -36,6 +36,8 @@ pub struct ValueMeta {
     pub description: String,
     pub default: Option<mlua::Value>,
     pub choices: Option<Vec<String>>,
+    #[serde(skip)]
+    pub validate: Option<mlua::Function>,
 }
 
 impl FromLua for ValueMeta {
@@ -56,6 +58,7 @@ impl FromLua for ValueMeta {
             default: table.get("default").unwrap_or_default(),
             r#type: get_and_check(&table, "type", "string", &lua)?,
             choices: table.get("choices").unwrap_or_default(),
+            validate: table.get("validate").ok(),
         })
     }
 }

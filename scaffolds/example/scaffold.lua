@@ -47,6 +47,12 @@ Hello world! {{ a }}
 			description = "Some description",
 			type = "string",
 			default = "Example!",
+			validate = function(val)
+				if #val < 5 then
+					return "Must be more than 4 characters!"
+				end
+				return true
+			end,
 		},
 		enum = {
 			description = "Test",
