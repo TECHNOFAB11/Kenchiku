@@ -17,11 +17,18 @@ in
           lockFileMaintenance = {
             enabled = true;
             extends = ["schedule:monthly"];
-            branchTopic = "lock-file-maintenance-{{packageFile}}";
-            commitMessageExtra = "({{packageFile}})";
           };
           nix.enabled = true;
           gitlabci.enabled = false;
+          packageRules = [
+            {
+              description = "Only split Nix lockfile management into separate branches";
+              matchManagers = ["nix"];
+              matchUpdateTypes = ["lockFileMaintenance"];
+              branchTopic = "lock-file-maintenance-{{packageFile}}";
+              commitMessageExtra = "({{packageFile}})";
+            }
+          ];
         };
         hook = {
           mode = "copy";
