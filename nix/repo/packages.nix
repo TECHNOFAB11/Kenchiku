@@ -25,4 +25,11 @@ in rec {
         installShellCompletion kenchiku.{bash,zsh,fish}
       '';
     };
+  lua-schema = pkgs.stdenvNoCC.mkDerivation {
+    name = "kenchiku-lua-schema";
+    phases = ["installPhase"];
+    installPhase = ''
+      cp ${parent.self}/schema.lua $out
+    '';
+  };
 }
